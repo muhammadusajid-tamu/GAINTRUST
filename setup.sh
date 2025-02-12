@@ -25,3 +25,16 @@ packages=(
 for package in "${packages[@]}"; do
     pip install "$package"
 done
+
+# Is needed for some reason (maybe?), TODO: see if 100% necessary
+pip uninstall "torch" -y
+pip install "torch"
+
+# setup should be complete, prompt user to manually start virtual environment
+echo "------------------------------------------------"
+echo "Virtual environment setup is complete!"
+echo "To activate the virtual environment, run:"
+echo ""
+echo "    source myenv/bin/activate"
+echo ""
+echo "------------------------------------------------"
