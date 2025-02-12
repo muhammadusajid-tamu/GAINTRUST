@@ -23,18 +23,16 @@ packages=(
 
 # Loop through the array and install each package
 for package in "${packages[@]}"; do
+    echo -e "\e[1;34msetup.sh:\e[0m\e[33m Installing $package...\e[0m"
     pip install "$package"
+    echo -e "\e[1;34msetup.sh:\e[0m\e[32m Finished installing $package.\e[0m\n"
 done
-
-# Is needed for some reason (maybe?), TODO: see if 100% necessary
-pip uninstall "torch" -y
-pip install "torch"
 
 # setup should be complete, prompt user to manually start virtual environment
 echo "------------------------------------------------"
 echo "Virtual environment setup is complete!"
 echo "To activate the virtual environment, run:"
 echo ""
-echo "    source myenv/bin/activate"
+echo -e "    \e[33msource myenv/bin/activate\e[0m"
 echo ""
 echo "------------------------------------------------"
