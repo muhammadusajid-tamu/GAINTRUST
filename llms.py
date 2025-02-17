@@ -10,7 +10,7 @@ from openai import OpenAI
 import re
 from typing import Any, List, Dict, Tuple, Union
 import google.generativeai
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 from overrides import override
 from tenacity import (
     retry,
@@ -18,7 +18,7 @@ from tenacity import (
     stop_after_delay,
     retry_if_exception_type,
 )
-
+import torch
 from utils import tag
 
 
@@ -457,6 +457,60 @@ class Local(QueryEngine):
             raise QueryError(e)
 
         return response
+    
+class CodeLlama(QueryEngine):
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-7b-hf"):
+        """
+        Initialize the codellama local model query engine.
+        :param global_constraints: List of global constraints applied to all queries.
+        :param model_name: The Hugging Face model to load.
+        """
+        super().__init__(global_constraints)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name, torch_dtype=torch.float16, device_map="auto"
+        )
+        self.model_name = model_name
+
+    def stringify_prompt(self, prompt: Prompt) -> str:
+        """
+        Converts a Prompt object into a plain text format suitable for a local LLM.
+        """
+        messages = self.messages(prompt)
+        prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
+        return prompt_str
+
+    @retry(
+        reraise=True,
+        retry=retry_if_exception_type(Exception),
+        wait=wait_random_exponential(multiplier=1, max=30),
+        stop=stop_after_delay(300),
+    )
+    def raw_query(self, prompt: Union[str, Prompt], model_params: Dict[str, Any]) -> str:
+        """
+        Sends a query to the local model and returns the response.
+        """
+        if isinstance(prompt, Prompt):
+            prompt = self.stringify_prompt(prompt)
+
+        logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
+
+        try:
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+            output_tokens = self.model.generate(
+                **inputs,
+                max_length=model_params.get("max_length", 512),
+                temperature=model_params.get("temperature", 0.7),
+                do_sample=model_params.get("do_sample", True),
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
+            response = self.tokenizer.decode(output_tokens[0], skip_special_tokens=True)
+
+        except Exception as e:
+            logging.error(f"Error during model inference: {e}")
+            raise QueryError(e)
+
+        return response
 
 
 class QueryEngineFactory:
@@ -475,5 +529,7 @@ class QueryEngineFactory:
                 return Gemini(global_constraints)
             case "local":
                 return Local(global_constraints)
+            case "codellama":
+                return CodeLlama(global_constraints)
             case _:
                 raise ValueError(f"Unknown model: {model}")

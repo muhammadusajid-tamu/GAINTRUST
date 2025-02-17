@@ -30,18 +30,26 @@ def main():
 
     print(options.model)
 
-    query_engine = QueryEngineFactory.create_engine("local", global_constraints)
+    c_code = """#include <iostream> 
+    int main() { 
+        std::cout << "Hello World" << std::endl; 
+        return 0; 
+    }"""
 
-    response = query_engine.query(f"You are given C code contained in <code> tags."
-                + " We need to translate this code to Rust.\n\n"
-                + "<code> #include <iostream> int main(){ std::cout << \"Hello World\" << std::endl return 0 } <code>"
-                + "Give me Rust refactoring of above {self.src_lang.capitalize()} code. "
-                + "Use the same function name, same argument and return types. "
-                + "Make sure it includes all imports, uses safe rust, and compiles. "
-                + "Don't use raw pointers. "
-                + "Use box pointer whenever possible. Box pointers are preferable to other alternatives. "
-                + "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code. "
-                + "Try not to use Generics if possible.")
+    prompt = (
+        "You are given C code inside <code> tags. "
+        "Translate this C code into Rust while keeping the function name, arguments, and return types the same.\n\n"
+        f"<code> {c_code} </code>\n\n"
+        "Requirements:\n"
+        "- Ensure the Rust code compiles and includes all necessary imports.\n"
+        "- Use safe Rust, avoiding raw pointers.\n"
+        "- Prefer `Box` pointers when applicable.\n"
+        "- Avoid using Traits and Generics whenever possible.\n"
+        "Now, provide the translated Rust code:"
+    )
+    query_engine = QueryEngineFactory.create_engine(options.model, global_constraints)
+
+    response = query_engine.query(prompt)
     print(response)
 
 
