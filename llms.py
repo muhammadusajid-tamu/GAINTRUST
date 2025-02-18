@@ -461,9 +461,7 @@ class CodeLlama(QueryEngine):
         """
         super().__init__(global_constraints)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, torch_dtype=torch.float16, device_map="auto"
-        )
+        self.generator = pipeline("text-generation", model=model_name, torch_dtype=torch.float16, device_map="auto")
         self.model_name = model_name
 
     def stringify_prompt(self, prompt: Prompt) -> str:
@@ -490,15 +488,15 @@ class CodeLlama(QueryEngine):
         logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
 
         try:
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
-            output_tokens = self.model.generate(
-                **inputs,
-                max_length=model_params.get("max_length", 512),
-                temperature=model_params.get("temperature", 0.7),
-                do_sample=model_params.get("do_sample", True),
+            output = self.generator(
+                prompt,
+                do_sample=True,
+                temperature=0.7,
+                num_return_sequences=1,
                 eos_token_id=self.tokenizer.eos_token_id,
+                max_length=512,
             )
-            response = self.tokenizer.decode(output_tokens[0], skip_special_tokens=True)
+            response = output[0]['generated_text']
 
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
