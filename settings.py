@@ -11,8 +11,8 @@ class Options:
     restart_budget: int = 3
     fix_budget: int = 5
     fallback_opt: str = "fix"  # choices = ["restart", "param-search", "prompt-search", "simplify", "fix"]"
-    language: str = "go"  # choices = ["c", "go"]
-    comp_fix: str = "msft"  # choices = ["base", "adv", "beam", "msft"]
+    language: str = "c"  # choices = ["c", "go"]
+    comp_fix: str = "base"  # choices = ["base", "adv", "beam", "msft"]
     comp_fix_attempt_budget: int = 3
     sem_fix: str = "base"  # choices=["base", "llm-fl", "pa-fl", "llm-explain"]
     initial_temperature: float = 0.2
@@ -23,7 +23,7 @@ class Options:
     beam_width: int = 1
     n_fix_peers: int = 1
     transpl_attempt_budget: int = 3
-    model: str = "claude3"
+    model: str = "local-qwen"
 
     @property
     def work_dir(self) -> str:

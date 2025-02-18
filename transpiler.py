@@ -22,7 +22,7 @@ class Transpiler:
         self.src_lang = src_lang
         self.benchmark = benchmark
         self.fname = fname
-        self.benchmark_path = f"benchmarks/{src_lang}/{benchmark}"
+        self.benchmark_path = f"bms/{src_lang}/{benchmark}"
         # self.benchmark_workspace = f"benchmarks/workspace"
         self.prompt = prompt
         self.comp_fixer = comp_fixer
@@ -127,7 +127,7 @@ class Transpiler:
                 parsed_comp_out = parse_error_timepass(comp_out.stderr, self.fname)
                 num_errs = parsed_comp_out[-1]
 
-                logging.info(f"\tAttemp {attempt}: {num_errs} errors.")
+                logging.info(f"\tAttempt {attempt}: {num_errs} errors.")
                 if num_errs < min_num_errs:
                     min_num_errs = num_errs
                     best_answer_processed = cand_answer_processed
@@ -170,7 +170,7 @@ class Transpiler:
             parsed_comp_out = parse_error_timepass(comp_out.stderr, self.fname)
             num_errs = parsed_comp_out[-1]
 
-            logging.info(f"\tAttemp {attempt}: {num_errs} errors.")
+            logging.info(f"\tAttempt {attempt}: {num_errs} errors.")
             if num_errs < min_num_errs:
                 min_num_errs = num_errs
                 best_answer_processed = cand_answer_processed
@@ -278,7 +278,8 @@ class Transpiler:
 
         src_dir = f"{self.work_dir}/wspace/"
         res_dir = f"{self.work_dir}/results/"
-
+        print("DEBUG: writing prompt")
+        
         prompt = Prompt(
             context=(
                 f"You are given a {self.src_lang.capitalize()} code contained in <code> tags."
@@ -303,12 +304,15 @@ class Transpiler:
             cand_answer_processed = self.query_engine.generate_code(
                 prompt, model_params=self.model_params
             )
+            print("DEBUG: prompted model")
+
             comp_out = compile_and_record_query(cand_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
+            print("DEBUG: compiled and recorded")
 
             cand_init_comp_out = parse_error_timepass(comp_out.stderr, self.fname)
             num_errs = cand_init_comp_out[-1]
 
-            logging.info(f"\tAttemp {attempt}: {num_errs} errors.")
+            logging.info(f"\tAttempt {attempt}: {num_errs} errors.")
             if num_errs < min_num_errs:
                 min_num_errs = num_errs
                 best_answer_processed = cand_answer_processed

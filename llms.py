@@ -130,13 +130,20 @@ class QueryEngine:
 
     @staticmethod
     def extract(response: str) -> str:
-        tagged_block = re.search(r"<code>(?P<code>[\s\S]*)</code>", response)
-        if tagged_block:
-            return tagged_block["code"]
-        backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*)```", response)
+        #print("DEBUG: Query Engine Extracting")
+        #print("DEBUG: response: " + response)
+        #tagged_block = re.search(r"<code>(?P<code>[\s\S]*)</code>", response)
+        #if tagged_block:
+        #    print("Found <> code block")
+        #    print(tagged_block["code"])
+        #    return tagged_block["code"]
+        backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", response)
         if backticked_block:
-            return backticked_block["code"]
+            print("Found backtick code block")
+            print(backticked_block.group("code"))
+            return backticked_block.group("code")
 
+        print("No codeblock found")
         return response
 
     def messages(
@@ -412,36 +419,23 @@ class GPT4(QueryEngine):
         else:
             raise QueryError("Response doesn't contain useful information")
 
-class Local(QueryEngine):
+class LocalQwen(QueryEngine):
     def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"):
-        """
-        Initialize the local model query engine.
-        :param global_constraints: List of global constraints applied to all queries.
-        :param model_name: The Hugging Face model to load.
-        """
         super().__init__(global_constraints)
         self.model_name = model_name
         self.generator = pipeline("text-generation", model=model_name, device_map="auto")
-        print(f"constructed local model")
+        print(f"DEBUG: Constructed local model - Qwen")
 
     def stringify_prompt(self, prompt: Prompt) -> str:
-        """
-        Converts a Prompt object into a plain text format suitable for a local LLM.
-        """
         messages = self.messages(prompt)
         prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
         return prompt_str
 
-    @retry(
-        reraise=True,
-        retry=retry_if_exception_type(Exception),
-        wait=wait_random_exponential(multiplier=1, max=30),
-        stop=stop_after_delay(300),
-    )
-    def raw_query(self, prompt: Union[str, Prompt], model_params: Dict[str, Any]) -> str:
-        """
-        Sends a query to the local model and returns the response.
-        """
+    def raw_query(self, 
+                  prompt: Union[str, Prompt], 
+                  model_params: Dict[str, Any]
+                  ) -> str:
+        
         if isinstance(prompt, Prompt):
             prompt = self.stringify_prompt(prompt)
 
@@ -527,8 +521,8 @@ class QueryEngineFactory:
                 return Mistral(global_constraints)
             case "gemini":
                 return Gemini(global_constraints)
-            case "local":
-                return Local(global_constraints)
+            case "local-qwen":
+                return LocalQwen(global_constraints)
             case "codellama":
                 return CodeLlama(global_constraints)
             case _:
