@@ -492,8 +492,6 @@ class CodeLlama(QueryEngine):
                 prompt,
                 do_sample=True,
                 temperature=0.7,
-                num_return_sequences=1,
-                eos_token_id=self.tokenizer.eos_token_id,
                 max_length=512,
             )
             response = output[0]['generated_text']
