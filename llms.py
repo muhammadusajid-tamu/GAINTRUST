@@ -119,7 +119,7 @@ class QueryEngine:
             + self.global_constraints
             + [
                 "Give me code only, no explanation.",
-                # "Place your code inside a <code></code> tag.",
+                "Place your code inside a <code></code> tag.",
             ],
             extra_information=prompt.extra_information,
             preamble=prompt.preamble,
@@ -131,12 +131,12 @@ class QueryEngine:
     @staticmethod
     def extract(response: str) -> str:
         #print("DEBUG: Query Engine Extracting")
-        #print("DEBUG: response: " + response)
-        #tagged_block = re.search(r"<code>(?P<code>[\s\S]*)</code>", response)
-        #if tagged_block:
-        #    print("Found <> code block")
-        #    print(tagged_block["code"])
-        #    return tagged_block["code"]
+        print("DEBUG: response: " + response)
+        tagged_block = re.search(r"<code>(?P<code>[\s\S]*)</code>", response)
+        if tagged_block:
+           print("Found <> code block")
+           print(tagged_block["code"])
+           return tagged_block["code"]
         backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", response)
         if backticked_block:
             print("Found backtick code block")
@@ -492,9 +492,9 @@ class CodeLlama(QueryEngine):
                 prompt,
                 do_sample=True,
                 temperature=0.7,
-                max_length=512,
+                max_length=1024,
             )
-            response = output[0]['generated_text']
+            response = output[0]['generated_text'].split("</list>")[1]
 
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
