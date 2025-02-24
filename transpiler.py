@@ -288,13 +288,15 @@ class Transpiler:
             ),
             instruction=f"Give me Rust refactoring of above {self.src_lang.capitalize()} code.",
             constraints=[
-                # "Give me only the refactored code, don't add explanations comments or anything else.",
+                "Give me only the refactored code, don't add explanations comments or anything else.",
                 "Use the same function name, same argument and return types.",
                 "Make sure it includes all imports, uses safe rust, and compiles.",
                 "Don't use raw pointers.",
                 "Use box pointer whenever possible. Box pointers are preferable to other alternatives.",
                 "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code.",
                 "Try not to use Generics if possible.",
+                "Do NOT give a main() function or any example usage",
+
             ],
             extra_information=self.hint,
         )
