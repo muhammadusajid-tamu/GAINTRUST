@@ -137,11 +137,12 @@ class QueryEngine:
         #    print("Found <> code block")
         #    print(tagged_block["code"])
         #    return tagged_block["code"]
-        backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", response)
-        if backticked_block:
-            print("Found backtick code block")
-            print(backticked_block.group("code"))
-            return backticked_block.group("code")
+        matches = list(re.finditer(r"```(rust)?(?P<code>[\s\S]*?)```", response))
+
+        if len(matches) >= 2:
+            code_block = matches[1].group("code").strip()
+            print(code_block)
+            return code_block
 
         print("No codeblock found")
         return response
@@ -442,14 +443,14 @@ class LocalQwen(QueryEngine):
         logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
 
         try:
-            output = self.generator(prompt, max_length=model_params.get("max_length", 512),
-                                    temperature=model_params.get("temperature", 0.7),
+            output = self.generator(prompt, max_new_tokens=model_params.get("max_length", 2048),
+                                    temperature=model_params.get("temperature", 0.2),
                                     do_sample=model_params.get("do_sample", True))
             response = output[0]["generated_text"]
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
             raise QueryError(e)
-
+        #print(response)
         return response
     
 class CodeLlama(QueryEngine):

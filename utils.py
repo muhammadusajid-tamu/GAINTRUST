@@ -231,8 +231,10 @@ def compile_and_record_query(
 ) -> subprocess.CompletedProcess:
     if Path(f"{work_dir}").is_dir():
         with cd(f"{work_dir}"):
+            print("DEBUG: Directory exists, cleaning")
             subprocess.run(f"cargo clean", capture_output=True, shell=True)
     else:
+        print("DEBUG: Directory doesn't exist, initializing")
         # subprocess.run(f"cargo new {work_dir}", capture_output=True, shell=True)
         subprocess.run(f"cargo new --lib {work_dir}", capture_output=True, shell=True)
         os.makedirs(f"{work_dir}/logs", exist_ok=True)
@@ -260,6 +262,8 @@ def compile_and_record_query(
             capture_output=True,
             shell=True,
         )
+    
+    print("DEBUG: Called cargo build")
 
     # comp_output = subprocess.run(f"rustc --out-dir {work_dir} -Z track-diagnostics {work_dir}/{fname_wout_ext}.rs", capture_output=True, shell=True)
     with open(f"{work_dir}/logs/prog_{log_id}.err", "wb") as file:
@@ -345,6 +349,7 @@ def plot_err(paths, data):
 
 
 def parse_error_timepass(stderr, fname):
+    print("DEBUG: Parsing errors")
     lines = stderr.decode("utf-8").splitlines()
     ln_cnt = 0
     line = lines[ln_cnt]
@@ -388,6 +393,7 @@ def parse_error_timepass(stderr, fname):
         err_code_num[err.code] += 1
         err_diag_num[err.diagnostic] += 1
 
+    print("DEBUG: Found errors:", len(errors))
     return errors, err_code_num, err_diag_num, compilation_steps, len(errors)
 
 

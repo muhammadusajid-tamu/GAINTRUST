@@ -7,19 +7,19 @@ import logging
 import numpy as np
 
 # from dataclasses import dataclass
-from argparse_dataclass import ArgumentParser
+#from argparse_dataclass import ArgumentParser
 from typing import List, Tuple, Optional
 import tempfile
 import sys
 import shutil
 
 from fixer import Fixer
-from llms import Claude2, Claude3, GPT4, QueryEngineFactory
+from llms import QueryEngineFactory
 from transpiler import Transpiler
 from settings import Options
 import oracle
 from semantics import Candidate, CandidateFactory, SemanticsStrategy
-
+from configurator import Config
 
 def record_cov_data(report: str, show: List[Tuple[str, str]], work_dir: str):
     with open(f"{work_dir}/cov_report.txt", "w") as f:
@@ -104,9 +104,9 @@ def initial_transpilation(
 
 def main():
     # test()
-    parser = ArgumentParser(Options)
-    options = parser.parse_args()
-
+    #parser = ArgumentParser(Options)
+    #options = parser.parse_args()
+    options = Config.from_json_file("config.json")
     # config = botocore.config.Config(
     #     read_timeout=900, connect_timeout=900, retries={"max_attempts": 0}
     # )
@@ -132,6 +132,8 @@ def main():
         # os.rmdir(options.work_dir)
         shutil.rmtree(options.work_dir)
     os.makedirs(options.work_dir)
+
+    Config.to_json_file(options.work_dir + "config.json", options)
 
     crash_report = open(f"{options.work_dir}/crash_report.txt", "w")
     sys.stderr.write = crash_report.write
@@ -170,6 +172,8 @@ def main():
         options.work_dir,
         model_params={"temperature": options.initial_temperature},
     )
+
+
 
     # INITIAL ATTEMPT
     transpilation = initial_transpilation(transpiler, options)
