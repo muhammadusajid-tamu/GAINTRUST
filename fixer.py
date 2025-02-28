@@ -76,6 +76,8 @@ class Fixer:
                         "Use box pointer whenever possible. Box pointers are preferable to other alternatives.",
                         "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code.",
                         "Try not to use Generics if possible.",
+                        "Do not put any explanation or example comments.",
+                        "Do not add a main function",
                     ],
                 )
 

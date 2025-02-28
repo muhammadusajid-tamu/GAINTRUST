@@ -55,6 +55,8 @@ class Transpiler:
                 "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code.",
                 "Try not to use custom Generics if possible.",
                 "Do not give me main function.",
+                "Do not add any explanations or examples comments.",
+                "Put the translated rust code in a markdown rust block."
             ],
             preamble=cur_answer,
         )
@@ -276,10 +278,11 @@ class Transpiler:
         with open(f"{self.benchmark_path}/{self.fname}.{self.src_lang}", "r") as f:
             code = f.read()
 
+       
         src_dir = f"{self.work_dir}/wspace/"
         res_dir = f"{self.work_dir}/results/"
-        print("DEBUG: writing prompt")
-        
+        print("DEBUG: Writing prompt")
+
         prompt = Prompt(
             context=(
                 f"You are given a {self.src_lang.capitalize()} code contained in <code> tags."
@@ -295,21 +298,24 @@ class Transpiler:
                 "Use box pointer whenever possible. Box pointers are preferable to other alternatives.",
                 "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code.",
                 "Try not to use Generics if possible.",
-                "Do NOT give a main() function or any example usage",
-
+                "Do not add any explanations or example comments.",
+                "Do not give me a main function",
+                "Put the translated rust code in a markdown rust block."
             ],
             extra_information=self.hint,
         )
+
+        #print("DEBUG: Num attempts: " + self.transpl_attempt_budget)
 
         min_num_errs = 2**32
         for attempt in range(1, self.transpl_attempt_budget + 1):
             cand_answer_processed = self.query_engine.generate_code(
                 prompt, model_params=self.model_params
             )
-            print("DEBUG: prompted model")
+            print("DEBUG: Prompted model")
 
             comp_out = compile_and_record_query(cand_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
-            print("DEBUG: compiled and recorded")
+            print("DEBUG: Compiled and recorded")
 
             cand_init_comp_out = parse_error_timepass(comp_out.stderr, self.fname)
             num_errs = cand_init_comp_out[-1]
@@ -328,6 +334,7 @@ class Transpiler:
         answer_processed = best_answer_processed
         init_comp_out = parse_error_timepass(comp_out.stderr, self.fname)
 
+        print("DEBUG: Finished attempted translation. Onto fixing.")
         # apply cargo fix
         self.comp_fixer.cargo_fix(src_dir)
 

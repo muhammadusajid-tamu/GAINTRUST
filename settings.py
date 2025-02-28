@@ -28,9 +28,7 @@ class Options:
     @property
     def work_dir(self) -> str:
         return (
-            f"transpilations/{self.language}/{self.benchmark_name}/{self.tag}/{self.fallback_opt}/temperature-{self.initial_temperature}/"
-            f"{self.comp_fix_m}/{self.restart_settings_path}{self.fix_settings_path}"
-            f"{self.submodule_name}"
+            f"transpilations/{self.language}/{self.benchmark_name}/{self.tag}/"
         )
 
     @property
