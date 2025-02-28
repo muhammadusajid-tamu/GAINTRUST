@@ -5,10 +5,7 @@ sudo apt update && sudo apt install python3-venv -y
 
 # Install Rust and required dependencies
 sudo apt install rustup -y
-
 sudo apt install cargo -y
-rustup default nightly
-
 rustup default nightly
 
 # Create and activate virtual environment

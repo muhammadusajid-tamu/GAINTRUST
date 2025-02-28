@@ -442,7 +442,7 @@ class LocalQwen(QueryEngine):
         logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
 
         try:
-            output = self.generator(prompt, max_new_tokens=model_params.get("max_length", 2048),
+            output = self.generator(prompt, max_length=model_params.get("max_length", 1024),
                                     temperature=model_params.get("temperature", 0.2),
                                     do_sample=model_params.get("do_sample", True),
                                     return_full_text=False)
@@ -450,7 +450,7 @@ class LocalQwen(QueryEngine):
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
             raise QueryError(e)
-        #print(response)
+
         return response
     
 class CodeLlama(QueryEngine):
