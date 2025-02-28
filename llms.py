@@ -453,7 +453,7 @@ class LocalQwen(QueryEngine):
         return response
     
 class CodeLlama(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-7b-hf"):
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-13b-hf"):
         """
         Initialize the codellama local model query engine.
         :param global_constraints: List of global constraints applied to all queries.
@@ -490,11 +490,14 @@ class CodeLlama(QueryEngine):
         try:
             output = self.generator(
                 prompt,
-                do_sample=True,
-                temperature=0.7,
-                max_length=1024,
+                do_sample=model_params.get("do_sample", True),
+                temperature=model_params.get("temperature", 0.7),
+                max_length=model_params.get("max_length", 1024),
+                return_full_text=False,
+                truncation=True,
             )
-            response = output[0]['generated_text'].split("</list>")[1]
+            
+            response = output[0]['generated_text']
 
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
