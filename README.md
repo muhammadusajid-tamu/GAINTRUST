@@ -1,8 +1,8 @@
 # GAINTRUST
 
-## Installation
-
 This project is based heavily on the following paper: https://arxiv.org/pdf/2405.11514
+
+## Installation
 
 Follow these steps to set up and run the project:
 
