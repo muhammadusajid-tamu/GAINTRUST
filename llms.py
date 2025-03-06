@@ -132,7 +132,7 @@ class QueryEngine:
     def extract(response: str) -> str:
         #print("DEBUG: Query Engine Extracting")
         print("DEBUG: response: " + response)
-        tagged_block = re.search(r"<code>(?P<code>[\s\S]*)</code>", response)
+        tagged_block = re.search(r"<code>(?P<code>[\s\S]*?)</code>", response)
         if tagged_block:
            print("Found <> code block")
            print(tagged_block["code"])
@@ -420,7 +420,7 @@ class GPT4(QueryEngine):
             raise QueryError("Response doesn't contain useful information")
 
 class LocalQwen(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"):
+    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-3B-Instruct"):
         super().__init__(global_constraints)
         self.model_name = model_name
         self.generator = pipeline("text-generation", model=model_name, device_map="auto")
@@ -442,9 +442,11 @@ class LocalQwen(QueryEngine):
         logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
 
         try:
-            output = self.generator(prompt, max_new_tokens=model_params.get("max_length", 2048),
+            output = self.generator(prompt, max_new_tokens=model_params.get("max_length", 1024),
                                     temperature=model_params.get("temperature", 0.2),
-                                    do_sample=model_params.get("do_sample", True))
+                                    do_sample=model_params.get("do_sample", True),
+                                    return_full_text=False,
+                                    truncation=True)
             response = output[0]["generated_text"]
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
