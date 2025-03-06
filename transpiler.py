@@ -306,13 +306,17 @@ class Transpiler:
         )
 
         #print("DEBUG: Num attempts: " + self.transpl_attempt_budget)
+        with open(f"{self.work_dir}/initial_translation.txt", "w") as f:
+            f.write(f"{self.query_engine.stringify_prompt(prompt)}\n\n")
 
         min_num_errs = 2**32
         for attempt in range(1, self.transpl_attempt_budget + 1):
             cand_answer_processed = self.query_engine.generate_code(
                 prompt, model_params=self.model_params
             )
-            print("DEBUG: Prompted model")
+            # print("DEBUG: Prompted model")
+            with open(f"{self.work_dir}/initial_translation.txt", "a") as f:
+                f.write(f"==========(ATTEMPT {attempt})==========\n\n{cand_answer_processed}\n\n")
 
             comp_out = compile_and_record_query(cand_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
             print("DEBUG: Compiled and recorded")
