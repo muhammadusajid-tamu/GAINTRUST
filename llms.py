@@ -279,72 +279,46 @@ class Claude3(QueryEngine):
 
 
 class Mistral(QueryEngine):
-    def __init__(self, global_constraints: List[str]) -> None:
+    def __init__(self, global_constraints: List[str], model_name: str = "mistralai/Mistral-7B-v0.1"):
         super().__init__(global_constraints)
-        config = botocore.config.Config(
-            read_timeout=900, connect_timeout=900, retries={"max_attempts": 0}
-        )
-        self.bedrock = boto3.client(service_name="bedrock-runtime", config=config)
-        self.modelId = "mistral.mixtral-8x7b-instruct-v0:1"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.generator = pipeline("text-generation", model=model_name, device_map="auto")
+        self.model_name = model_name
 
-    BOS = "<s>"
-    EOS = "</s>"
-    INST_START = "[INST] "
-    INST_END = " [/INST]"
-
-    @override
     def stringify_prompt(self, prompt: Prompt) -> str:
-        """
-        https://www.promptingguide.ai/models/mistral-7b
-        """
-
-        prompt_str = ""
-        for content in prompt.history:
-            role, content = content
-            if role == USER:
-                prompt_str += f"{self.BOS}{self.INST_START}{content}{self.INST_END}"
-            elif role == ASSISTANT:
-                prompt_str += f" {content}{self.EOS}"
-            else:
-                raise ValueError(f"Unidentified role: {role}")
-
-        prompt_str += f"{self.INST_START}{str(prompt)}{self.INST_END}"
-
-        # TODO preamble?
+        messages = self.messages(prompt)
+        prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
         return prompt_str
 
-    @override
-    def raw_query(self, prompt: str | Prompt, model_params: Dict[str, Any]) -> str:
-        bedrock = self.bedrock
+    @retry(
+        reraise=True,
+        retry=retry_if_exception_type(Exception),
+        wait=wait_random_exponential(multiplier=1, max=30),
+        stop=stop_after_delay(300),
+    )
+    def raw_query(self, prompt: Union[str, Prompt], model_params: Dict[str, Any]) -> str:
         if isinstance(prompt, Prompt):
             prompt = self.stringify_prompt(prompt)
 
-        body = json.dumps(
-            {
-                "prompt": prompt,
-                "max_tokens": int(MAX_TOKEN / 2),
-                "temperature": model_params["temperature"],
-            }
-        )
-
-        modelId = self.modelId
-        accept = "application/json"
-        contentType = "application/json"
+        logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
 
         try:
-            response = bedrock.invoke_model(
-                body=body, modelId=modelId, accept=accept, contentType=contentType
+            output = self.generator(
+                prompt,
+                do_sample=model_params.get("do_sample", True),
+                temperature=model_params.get("temperature", 0.7),
+                max_length=model_params.get("max_length", 1024),
+                return_full_text=False,
+                truncation=True,
             )
+            
+            response = output[0]['generated_text']
+
         except Exception as e:
+            logging.error(f"Error during model inference: {e}")
             raise QueryError(e)
 
-        response_body = json.loads(response.get("body").read())
-        answer = response_body["outputs"][0]["text"]
-
-        logging.info(
-            f"A query to Mistral is made with model paramters as follows: {str(model_params)}"
-        )
-        return answer
+        return response
 
 
 class GPT4(QueryEngine):
@@ -420,11 +394,10 @@ class GPT4(QueryEngine):
             raise QueryError("Response doesn't contain useful information")
 
 class LocalQwen(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-3B-Instruct"):
+    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-7B-Instruct"):
         super().__init__(global_constraints)
         self.model_name = model_name
         self.generator = pipeline("text-generation", model=model_name, device_map="auto")
-        print(f"DEBUG: Constructed local model - Qwen")
 
     def stringify_prompt(self, prompt: Prompt) -> str:
         messages = self.messages(prompt)
@@ -455,21 +428,13 @@ class LocalQwen(QueryEngine):
         return response
     
 class CodeLlama(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-13b-hf"):
-        """
-        Initialize the codellama local model query engine.
-        :param global_constraints: List of global constraints applied to all queries.
-        :param model_name: The Hugging Face model to load.
-        """
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-7b-hf"):
         super().__init__(global_constraints)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.generator = pipeline("text-generation", model=model_name, torch_dtype=torch.float16, device_map="auto")
         self.model_name = model_name
 
     def stringify_prompt(self, prompt: Prompt) -> str:
-        """
-        Converts a Prompt object into a plain text format suitable for a local LLM.
-        """
         messages = self.messages(prompt)
         prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
         return prompt_str
@@ -481,9 +446,6 @@ class CodeLlama(QueryEngine):
         stop=stop_after_delay(300),
     )
     def raw_query(self, prompt: Union[str, Prompt], model_params: Dict[str, Any]) -> str:
-        """
-        Sends a query to the local model and returns the response.
-        """
         if isinstance(prompt, Prompt):
             prompt = self.stringify_prompt(prompt)
 
