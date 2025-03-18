@@ -3,6 +3,7 @@ import logging
 import anthropic
 from llms import QueryEngine, Prompt
 from utils import *
+import csv
 
 
 class Transpiler:
@@ -310,7 +311,9 @@ class Transpiler:
             f.write(f"{self.query_engine.stringify_prompt(prompt)}\n\n")
 
         min_num_errs = 2**32
+        initial_translation_attempts = 0
         for attempt in range(1, self.transpl_attempt_budget + 1):
+            initial_translation_attempts += 1
             cand_answer_processed = self.query_engine.generate_code(
                 prompt, model_params=self.model_params
             )
@@ -331,6 +334,16 @@ class Transpiler:
 
             if not num_errs:
                 break
+
+        if min_num_errs == 0:
+            initial_translation = True
+        else:
+            initial_translation = False
+    
+        with open('measurements.csv', 'a') as csvfile:
+            fieldnames = ['initial_translation', 'initial_translation_attempts']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts})
 
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
