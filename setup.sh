@@ -25,6 +25,14 @@ packages=(
     overrides
     matplotlib
     accelerate
+    langchain
+    langchain-openai
+    langchain-anthropic
+    langchain-community
+    langchain-core
+    chromadb
+    faiss-cpu
+    tiktoken
 )
 
 # Loop through the array and install each package

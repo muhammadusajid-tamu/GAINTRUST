@@ -44,3 +44,39 @@ Follow these steps to set up and run the project:
     ```sh
     python driver.py
     ```
+
+## C to Rust Transpilation with LangChain
+
+This project now includes enhanced C to Rust transpilation capabilities using LangChain integration and a supervisor architecture. These new features provide more efficient and effective code conversion with feedback loops for improved results.
+
+### Key Components
+
+1. **LangChain Integration**
+   - `langchain_local_integration.py`: Adapts local models for use with LangChain and implements specialized C to Rust transpilation chains
+   - Provides direct transpilation and transpilation with feedback loops
+
+2. **Supervisor Architecture**
+   - `supervisor.py`: Implements a task routing system that analyzes C code and determines the appropriate transpilation strategy
+   - Manages the workflow and incorporates feedback loops for improved results
+
+3. **Testing**
+   - `test_c_to_rust.py`: Demonstrates the use of the C to Rust transpilation capabilities with various examples
+   - Supports multiple transpilation methods: direct, with feedback, supervisor-based, and supervisor with feedback
+
+### Usage
+
+To test the C to Rust transpilation system:
+
+```sh
+# Test with built-in examples
+python test_c_to_rust.py --example linked_list --method all
+
+# Test with a custom C file
+python test_c_to_rust.py --file test_samples/sample.c --method supervisor_feedback
+
+# Available methods:
+# - direct: Basic transpilation
+# - feedback: Transpilation with error correction feedback loops
+# - supervisor: Transpilation with task routing
+# - supervisor_feedback: Transpilation with task routing and feedback loops
+# - all: Run all methods (only for built-in examples)
