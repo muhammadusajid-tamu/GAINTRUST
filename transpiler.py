@@ -341,9 +341,9 @@ class Transpiler:
             initial_translation = False
     
         with open('measurements.csv', 'a') as csvfile:
-            fieldnames = ['initial_translation', 'initial_translation_attempts']
+            fieldnames = ['initial_translation', 'initial_translation_attempts', "initial_translation_errors"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts})
+            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts, 'initial_translation_errors': num_errs})
 
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
@@ -387,8 +387,9 @@ class Transpiler:
             rust_code, fnl_comp_out, num_llm_call = self.comp_fixer.fix(
                 answer_processed, init_comp_out, src_dir
             )
+            fnl_num_err = fnl_comp_out
 
-            tot_num_llm_call_for_fix += num_llm_call
+            # tot_num_llm_call_for_fix += num_llm_call
             (
                 _,
                 init_err_c_num_dict,
@@ -396,38 +397,52 @@ class Transpiler:
                 _,
                 init_num_err,
             ) = init_comp_out
-            _, fnl_err_c_num_dict, fnl_err_phase_num_dict, _, fnl_num_err = fnl_comp_out
-
+            # _, fnl_err_c_num_dict, fnl_err_phase_num_dict, _, fnl_num_err = fnl_comp_out
             logging.info(
-                f"\t\tNum errors decreased from {init_num_err} to {fnl_num_err}. Fix path was {self.comp_fixer.fix_path}."
+                f"\tNumber of errors decreased from {init_num_err} to {fnl_num_err} via LLM."
             )
+
+            with open("measurements.csv", 'r', newline='') as csvfile:
+                reader = list(csv.reader(csvfile))
+
+            if len(reader) > 1:
+                last_row = reader[-1]
+                last_row.append(f'{fnl_num_err == 0}')  # Updating 'compiles'
+                last_row.append(f'{num_llm_call}')  # Updating 'compiles_attempts'
+                last_row.append(f"{fnl_num_err}") # Updating 'final_translation_errors'
+
+                with open("measurements.csv", 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows(reader[:-1])
+                    writer.writerow(last_row)
+
             if not fnl_num_err:
                 os.makedirs(f"{res_dir}/", exist_ok=True)
                 self.write_src_code_to_res_dir(res_dir, code)
                 with open(f"{res_dir}/{self.fname}.rs", "w") as fw:
                     fw.write(rust_code)
 
-                num_complete_fixed_transpl += 1
+                # num_complete_fixed_transpl += 1
                 compiles = True
 
-            cum_init_err_c_num_dict = {
-                k: cum_init_err_c_num_dict.get(k, 0) + init_err_c_num_dict.get(k, 0)
-                for k in set(cum_init_err_c_num_dict) | set(init_err_c_num_dict)
-            }
-            cum_fnl_err_c_num_dict = {
-                k: cum_fnl_err_c_num_dict.get(k, 0) + fnl_err_c_num_dict.get(k, 0)
-                for k in set(cum_fnl_err_c_num_dict) | set(fnl_err_c_num_dict)
-            }
-            cum_init_err_phase_num_dict = {
-                k: cum_init_err_phase_num_dict.get(k, 0)
-                + init_err_phase_num_dict.get(k, 0)
-                for k in set(cum_init_err_phase_num_dict) | set(init_err_phase_num_dict)
-            }
-            cum_fnl_err_phase_num_dict = {
-                k: cum_fnl_err_phase_num_dict.get(k, 0)
-                + fnl_err_phase_num_dict.get(k, 0)
-                for k in set(cum_fnl_err_phase_num_dict) | set(fnl_err_phase_num_dict)
-            }
+            # cum_init_err_c_num_dict = {
+            #     k: cum_init_err_c_num_dict.get(k, 0) + init_err_c_num_dict.get(k, 0)
+            #     for k in set(cum_init_err_c_num_dict) | set(init_err_c_num_dict)
+            # }
+            # cum_fnl_err_c_num_dict = {
+            #     k: cum_fnl_err_c_num_dict.get(k, 0) + fnl_err_c_num_dict.get(k, 0)
+            #     for k in set(cum_fnl_err_c_num_dict) | set(fnl_err_c_num_dict)
+            # }
+            # cum_init_err_phase_num_dict = {
+            #     k: cum_init_err_phase_num_dict.get(k, 0)
+            #     + init_err_phase_num_dict.get(k, 0)
+            #     for k in set(cum_init_err_phase_num_dict) | set(init_err_phase_num_dict)
+            # }
+            # cum_fnl_err_phase_num_dict = {
+            #     k: cum_fnl_err_phase_num_dict.get(k, 0)
+            #     + fnl_err_phase_num_dict.get(k, 0)
+            #     for k in set(cum_fnl_err_phase_num_dict) | set(fnl_err_phase_num_dict)
+            # }
         elif init_comp_out[-1]:
             logging.info("\tTranspilation FAILED. No fixer is set.")
         else:
