@@ -436,7 +436,7 @@ class CodeLlama(QueryEngine):
 
     def stringify_prompt(self, prompt: Prompt) -> str:
         messages = self.messages(prompt)
-        prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
+        prompt_str = "[INST]" + "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages) + "[/INST]"
         return prompt_str
 
     def raw_query(self, prompt: Union[str, Prompt], model_params: Dict[str, Any]) -> str:
