@@ -2,6 +2,7 @@ import anthropic
 import boto3
 import botocore
 import logging
+import ollama
 from abc import abstractmethod
 from dataclasses import dataclass, field
 import json
@@ -424,8 +425,78 @@ class LocalQwen(QueryEngine):
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
             raise QueryError(e)
-        
+
         return response
+    
+class LocalLlama33(QueryEngine):
+    def __init__(self, global_constraints: List[str], model_name: str = "llama3.3:latest"):
+        super().__init__(global_constraints)
+        self.model_name = model_name
+        print(f"DEBUG: Constructed local model - {model_name}")
+
+    def stringify_prompt(self, prompt: Prompt) -> str:
+        messages = self.messages(prompt)
+        prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
+        return prompt_str
+
+    def raw_query(self, 
+                  prompt: Union[str, Prompt], 
+                  model_params: Dict[str, Any]
+                  ) -> str:
+        
+        if isinstance(prompt, Prompt):
+            prompt = self.stringify_prompt(prompt)
+
+        logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
+
+        try:
+            response = ollama.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                options={
+                    "temperature": model_params.get("temperature", 0.7),
+                    "max_tokens": model_params.get("max_length", 512)
+                }
+            )
+            return response["message"]["content"]
+        except Exception as e:
+            logging.error(f"Error during model inference: {e}")
+            raise QueryError(e)
+        
+class Deepseek(QueryEngine):
+    def __init__(self, global_constraints: List[str], model_name: str = "deepseek-coder-v2:latest"):
+        super().__init__(global_constraints)
+        self.model_name = model_name
+        print(f"DEBUG: Constructed local model - {model_name}")
+
+    def stringify_prompt(self, prompt: Prompt) -> str:
+        messages = self.messages(prompt)
+        prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
+        return prompt_str
+
+    def raw_query(self, 
+                  prompt: Union[str, Prompt], 
+                  model_params: Dict[str, Any]
+                  ) -> str:
+        
+        if isinstance(prompt, Prompt):
+            prompt = self.stringify_prompt(prompt)
+
+        logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
+
+        try:
+            response = ollama.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                options={
+                    "temperature": model_params.get("temperature", 0.7),
+                    "max_tokens": model_params.get("max_length", 512)
+                }
+            )
+            return response["message"]["content"]
+        except Exception as e:
+            logging.error(f"Error during model inference: {e}")
+            raise QueryError(e)
     
 class CodeLlama(QueryEngine):
     def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-7b-Instruct-hf"):
