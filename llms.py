@@ -552,5 +552,9 @@ class QueryEngineFactory:
                 return LocalQwen(global_constraints)
             case "codellama":
                 return CodeLlama(global_constraints)
+            case "llama3.3":
+                return LocalLlama33(global_constraints)
+            case "deepseek":
+                return Deepseek(global_constraints)
             case _:
                 raise ValueError(f"Unknown model: {model}")
