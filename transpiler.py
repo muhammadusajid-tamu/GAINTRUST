@@ -343,7 +343,7 @@ class Transpiler:
         with open('measurements.csv', 'a') as csvfile:
             fieldnames = ['initial_translation', 'initial_translation_attempts', "initial_translation_errors"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts, 'initial_translation_errors': num_errs})
+            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts, 'initial_translation_errors': min_num_errs})
 
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
