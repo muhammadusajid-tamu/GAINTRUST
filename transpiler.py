@@ -276,6 +276,9 @@ class Transpiler:
 
         compiles = False
         logging.info(f"Now transpiling {self.fname}.")
+        print(self.benchmark_path)
+        print(self.fname)
+        print(self.src_lang)
         with open(f"{self.benchmark_path}/{self.fname}.{self.src_lang}", "r") as f:
             code = f.read()
 

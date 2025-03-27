@@ -11,6 +11,7 @@ from openai import OpenAI
 import re
 from typing import Any, List, Dict, Tuple, Union
 import google.generativeai
+import traceback
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 from overrides import override
 from tenacity import (
@@ -464,7 +465,7 @@ class LocalLlama33(QueryEngine):
             raise QueryError(e)
         
 class Deepseek(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "deepseek-coder-v2:latest"):
+    def __init__(self, global_constraints: List[str], model_name: str = "deepseek-coder:6.7b"):
         super().__init__(global_constraints)
         self.model_name = model_name
         print(f"DEBUG: Constructed local model - {model_name}")
@@ -490,48 +491,50 @@ class Deepseek(QueryEngine):
                 messages=[{"role": "user", "content": prompt}],
                 options={
                     "temperature": model_params.get("temperature", 0.7),
-                    "max_tokens": model_params.get("max_length", 512)
+                    "max_tokens": model_params.get("max_length", 2048)
                 }
             )
             return response["message"]["content"]
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
+            logging.error(traceback.format_exc())
             raise QueryError(e)
     
 class CodeLlama(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "codellama/CodeLlama-7b-Instruct-hf"):
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama:7b"):
         super().__init__(global_constraints)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.generator = pipeline("text-generation", model=model_name, torch_dtype=torch.float16, device_map="auto")
         self.model_name = model_name
+        print(f"DEBUG: Constructed local model - {model_name}")
 
     def stringify_prompt(self, prompt: Prompt) -> str:
         messages = self.messages(prompt)
-        prompt_str = "[INST]" + "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages) + "[/INST]"
+        prompt_str = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
         return prompt_str
 
-    def raw_query(self, prompt: Union[str, Prompt], model_params: Dict[str, Any]) -> str:
+    def raw_query(self, 
+                  prompt: Union[str, Prompt], 
+                  model_params: Dict[str, Any]
+                  ) -> str:
+        
         if isinstance(prompt, Prompt):
             prompt = self.stringify_prompt(prompt)
 
         logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
+
         try:
-            output = self.generator(
-                prompt,
-                do_sample=model_params.get("do_sample", True),
-                temperature=model_params.get("temperature", 0.7),
-                max_length=model_params.get("max_length", 1024),
-                return_full_text=False,
-                truncation=True
+            response = ollama.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                options={
+                    "temperature": model_params.get("temperature", 0.7),
+                    "max_tokens": model_params.get("max_length", 2048)
+                }
             )
-            
-            response = output[0]['generated_text']
-            
+            return response["message"]["content"]
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
+            logging.error(traceback.format_exc())
             raise QueryError(e)
-
-        return response
 
 
 class QueryEngineFactory:

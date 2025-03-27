@@ -1,5 +1,5 @@
 {
-    "benchmark_name": "bms/c/cube",
+    "benchmark_name": "cube",
     "submodule_name": "cube",
     "tag": "test",
     "n_prompt_examples": 4,
@@ -9,5 +9,5 @@
     "fallback_opt": "fix",
     "language": "c",
 
-    "model": "deepseek"
+    "model": "codellama"
 }

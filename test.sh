@@ -1,1 +1,1 @@
-python3 driver.py --benchmark-name libopenaptx/aptx_bin_search --submodule-name aptx_bin_search --tag t --model local-qwen 
+python3 driver.py --benchmark-name cube --submodule-name cube --tag t --model codellama 
