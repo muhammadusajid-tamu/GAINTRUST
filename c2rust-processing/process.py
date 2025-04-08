@@ -1,7 +1,40 @@
 import re
 import os
+import subprocess
 
-def extract_defines_structs_data(input_file, output_dir):
+def extract_functions(c_file):
+    with open(c_file, 'r', encoding='utf-8') as file:
+        code = file.read()
+
+    function_pattern = re.compile(
+        r'^(?!\s*(?:if|else\s+if|else|while|for|switch|do|return)\b)\s*\w+[\w\s\*]*\s+(\w+)\s*\([\s\S]*?\)\s*\{',
+        re.MULTILINE
+    )
+
+    functions = []
+    stack = 0
+    start_index = None
+
+    for match in function_pattern.finditer(code):
+        if start_index is not None:
+            continue  # Skip if we're already inside a function
+
+        start_index = match.start()
+        stack = 1  # We're inside a function
+
+        for i in range(match.end(), len(code)):
+            if code[i] == '{':
+                stack += 1
+            elif code[i] == '}':
+                stack -= 1
+                if stack == 0:  # Function end
+                    functions.append((match.group(1), code[start_index:i+1]))
+                    start_index = None
+                    break
+
+    return functions
+
+def extract_defines_structs_data(functions, input_file, output_dir):
     with open(input_file, 'r') as f:
         content = f.read()
     
@@ -25,6 +58,10 @@ def extract_defines_structs_data(input_file, output_dir):
         if defines:
             f.write("// Extracted #defines\n")
             f.write("\n".join(defines) + "\n\n")
+
+        if enums:
+            f.write("// Extracted enums\n")
+            f.write("\n\n".join(enums) + "\n\n")
         
         if structs:
             f.write("// Extracted structs\n")
@@ -33,13 +70,11 @@ def extract_defines_structs_data(input_file, output_dir):
         if static_consts:
             f.write("// Extracted static const data\n")
             f.write("\n\n".join(static_consts) + "\n\n")
-
-        if enums:
-            f.write("// Extracted enums\n")
-            f.write("\n\n".join(enums) + "\n\n")
+            
+        if functions:
+            f.write("\n".join(functions) + "\n\n")
         
         f.write("#endif // EXTRACTED_HEADER_H\n")
-
 
 def extract_includes(c_file, source_dir):
     with open(c_file, 'r', encoding='utf-8') as file:
@@ -85,53 +120,50 @@ def copy_and_fix_headers(header_files, source_dir, output_dir):
         else:
             print(f"Warning: Header file {header} not found in {source_dir}")
 
-def extract_functions(c_file):
-    with open(c_file, 'r', encoding='utf-8') as file:
-        code = file.read()
+def extract_function_signatures(c_file):
+    command = f'clang -E  {c_file} | cproto -s'
 
-    function_pattern = re.compile(r'^\s*\w+[\w\s\*]*\s+(\w+)\s*\(.*?\)\s*\{', re.MULTILINE)
+    # Run the command as a subprocess
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-    functions = []
-    stack = 0
-    start_index = None
+    # Capture the output and error messages
+    output = result.stdout
+    error = result.stderr
 
-    for match in function_pattern.finditer(code):
-        if start_index is not None:
-            continue  # Skip if we're already inside a function
-
-        start_index = match.start()
-        stack = 1  # We're inside a function
-
-        for i in range(match.end(), len(code)):
-            if code[i] == '{':
-                stack += 1
-            elif code[i] == '}':
-                stack -= 1
-                if stack == 0:  # Function end
-                    functions.append((match.group(1), code[start_index:i+1]))
-                    start_index = None
-                    break
-
+    if result.returncode != 0:
+        print("Error:")
+        print(error)
+    
+    functions = output.split('\n')
+    functions = functions[1:]
+    s_functions = {}
+    for i in range(len(functions)):
+        if "static" in functions[i]:
+            functions[i] = functions[i].replace('static', '')
+            s_functions[functions[i]] = True
+        else:
+            s_functions[functions[i]] = False
+    
     return functions
-
+    
 def save_functions(functions, includes, local_headers, output_dir):
-    # Modify includes so that local headers use ""
     fixed_includes = []
     for line in includes:
         match = re.search(r'#include\s+["<](.*?)[">]', line)
         if match:
             header_file = match.group(1)
             if header_file in local_headers:
-                fixed_includes.append(f'#include "{header_file}"')  # Convert to quoted format
+                fixed_includes.append(f'#include "{header_file}"') 
             else:
                 fixed_includes.append(line)  # Keep system includes unchanged
 
     fixed_includes.append(f'#include "flex_extraction.h"')
-    include_text = "\n".join(fixed_includes)  # Join all includes into a single string
+    include_text = "\n".join(fixed_includes)
 
     for name, body in functions:
+        body_clean = body.replace('static', '')
         with open(os.path.join(output_dir, f"{name}.c"), 'w', encoding='utf-8') as f:
-            f.write(include_text + "\n" + body)  # Add includes at the top
+            f.write(include_text + "\n" + body_clean)  # Add includes at the top
 
 if __name__ == "__main__":
     c_filename = "openaptx.c"  # Replace with your C file
@@ -139,12 +171,15 @@ if __name__ == "__main__":
     source_directory = os.path.dirname(os.path.abspath(c_filename))  # Get directory of C file
 
     extracted_includes, local_headers = extract_includes(c_filename, source_directory)
+    signatures = extract_function_signatures(c_filename) 
     extracted_functions = extract_functions(c_filename)
     
+
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     
-    extract_defines_structs_data(c_filename, output_directory)
+
+    extract_defines_structs_data(signatures, c_filename, output_directory)
 
     save_functions(extracted_functions, extracted_includes, local_headers, output_directory)
     

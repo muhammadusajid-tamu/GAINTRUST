@@ -35,7 +35,7 @@ class Transpiler:
         self.work_dir = work_dir
 
     def transpile(self):
-        if self.prompt == "base":
+        if self.prompt == "base" or self.prompt == "c2rust":
             return self.transpile_base()
         elif self.prompt == "mutate":
             return self.transpile_mutate()
@@ -283,6 +283,7 @@ class Transpiler:
         res_dir = f"{self.work_dir}/results/"
         print("DEBUG: Writing prompt")
 
+            
         prompt = Prompt(
             context=(
                 f"You are given a {self.src_lang.capitalize()} code contained in <code> tags."
@@ -305,6 +306,28 @@ class Transpiler:
             extra_information=self.hint,
         )
 
+        if self.prompt == "c2rust":
+            prompt = Prompt(
+                context=(
+                    f"You are given unsafe Rust code contained in <code> tags."
+                    + " We need to translate this unsafe Rust to safe Rust.\n\n"
+                    + tag(code, "code")
+                ),
+                instruction=f"Give me safe Rust refactoring of the above code.",
+                constraints=[
+                    "Give me only the refactored code, don't add explanations comments.",
+                    "Use the same function and argument names, and use equivalent safe types.",
+                    "Make sure it includes all imports, uses safe rust, and compiles.",
+                    "Don't use raw pointers.",
+                    "Use box pointer whenever possible. Box pointers are preferable to other alternatives.",
+                    "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code.",
+                    "Try not to use Generics if possible.",
+                    "Do not add any explanations or example comments.",
+                    "Do not give me a main function",
+                    "Put the translated code in a markdown rust block."
+                ],
+                extra_information=self.hint,
+            )
         #print("DEBUG: Num attempts: " + self.transpl_attempt_budget)
 
         min_num_errs = 2**32

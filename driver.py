@@ -160,8 +160,12 @@ def main():
     restart_budget = options.restart_budget
     fix_budget = options.fix_budget
 
+
+    prompt = "base"
+    if options.c2rust == True:
+        prompt = "c2rust"
     transpiler = Transpiler(
-        "base",
+        prompt,
         comp_fixer,
         eq_fixer,
         options.language,
