@@ -421,8 +421,7 @@ class LocalQwen(QueryEngine):
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 options={
-                    "temperature": model_params.get("temperature", 0.7),
-                    "max_tokens": model_params.get("max_length", 2048)
+                    "temperature": model_params.get("temperature", 0.2)
                 }
             )
             return response["message"]["content"]
