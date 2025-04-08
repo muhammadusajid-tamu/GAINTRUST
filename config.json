@@ -9,5 +9,5 @@
     "fallback_opt": "fix",
     "language": "c",
 
-    "model": "codellama"
+    "model": "local-qwen"
 }

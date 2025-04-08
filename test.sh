@@ -1,1 +1,1 @@
-python3 driver.py --benchmark-name cube --submodule-name cube --tag t --model codellama 
+python3 driver.py

@@ -396,10 +396,10 @@ class GPT4(QueryEngine):
             raise QueryError("Response doesn't contain useful information")
 
 class LocalQwen(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-7B-Instruct"):
+    def __init__(self, global_constraints: List[str], model_name: str = "qwen2.5-coder:32b"):
         super().__init__(global_constraints)
         self.model_name = model_name
-        self.generator = pipeline("text-generation", model=model_name, device_map="auto")
+        print(f"DEBUG: Constructed local model - {model_name}")
 
     def stringify_prompt(self, prompt: Prompt) -> str:
         messages = self.messages(prompt)
@@ -415,19 +415,21 @@ class LocalQwen(QueryEngine):
             prompt = self.stringify_prompt(prompt)
 
         logging.info(f"Querying local model '{self.model_name}' with params: {model_params}")
-        
+
         try:
-            output = self.generator(prompt, max_new_tokens=model_params.get("max_length", 1024),
-                                    temperature=model_params.get("temperature", 0.2),
-                                    do_sample=model_params.get("do_sample", True),
-                                    return_full_text=False,
-                                    truncation=True)
-            response = output[0]["generated_text"]
+            response = ollama.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                options={
+                    "temperature": model_params.get("temperature", 0.7),
+                    "max_tokens": model_params.get("max_length", 2048)
+                }
+            )
+            return response["message"]["content"]
         except Exception as e:
             logging.error(f"Error during model inference: {e}")
+            logging.error(traceback.format_exc())
             raise QueryError(e)
-
-        return response
     
 class LocalLlama33(QueryEngine):
     def __init__(self, global_constraints: List[str], model_name: str = "llama3.3:latest"):
@@ -501,7 +503,7 @@ class Deepseek(QueryEngine):
             raise QueryError(e)
     
 class CodeLlama(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "codellama:7b"):
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama:13b"):
         super().__init__(global_constraints)
         self.model_name = model_name
         print(f"DEBUG: Constructed local model - {model_name}")
@@ -526,7 +528,7 @@ class CodeLlama(QueryEngine):
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 options={
-                    "temperature": model_params.get("temperature", 0.7),
+                    "temperature": model_params.get("temperature", 0.2),
                     "max_tokens": model_params.get("max_length", 2048)
                 }
             )
