@@ -142,6 +142,11 @@ class QueryEngine:
             print("Found backtick code block")
             print(backticked_block.group("code"))
             return backticked_block.group("code")
+        quoted_block = re.search(r"'''(rust)?(?P<code>[\s\S]*?)'''", response)
+        if quoted_block:
+            print("Found quoted code block")
+            print(quoted_block.group("code"))
+            return quoted_block.group("code")
 
         print("No codeblock found")
         return response
