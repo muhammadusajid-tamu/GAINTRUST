@@ -244,8 +244,14 @@ def compile_and_record_query(
             fw.write('rand = "0.8.4"\n')
             fw.write('libc = "0.2"\n')
             fw.write('regex = "1.10.2"\n')  # c urlparser benchmark
-            fw.write('lazy_static = "1.4.0"\n')  # go ACH benchmark
-            fw.write('once_cell = "1.19.0"\n')  # go ACH benchmark
+            #fw.write('lazy_static = "1.4.0"\n')  # go ACH benchmark
+            #fw.write('once_cell = "1.19.0"\n')  # go ACH benchmark
+            #fw.write('\n')
+            #fw.write('[source.crates-io]\n')
+            #fw.write('replace-with = "vendored-sources"\n')
+            #fw.write('\n')
+            #fw.write('[source.vendored-sources]\n')
+            #fw.write('directory = "vendor"\n')
 
     os.makedirs(f"{work_dir}/logs", exist_ok=True)
     with open(f"{work_dir}/logs/prog_{log_id}.ans", "w") as f:
