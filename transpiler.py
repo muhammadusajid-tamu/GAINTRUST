@@ -339,11 +339,20 @@ class Transpiler:
             initial_translation = True
         else:
             initial_translation = False
-    
-        with open('measurements.csv', 'a') as csvfile:
-            fieldnames = ['initial_translation', 'initial_translation_attempts', "initial_translation_errors"]
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts, 'initial_translation_errors': min_num_errs})
+
+        with open("measurements.csv", 'r', newline='') as csvfile:
+            reader = list(csv.reader(csvfile))
+
+            if len(reader) > 1:
+                last_row = reader[-1]
+                last_row.append(f'{initial_translation}')  # Updating 'initial_translation'
+                last_row.append(f'{initial_translation_attempts}')  # Updating 'initial_translation_attempts'
+                last_row.append(f"{min_num_errs}") # Updating 'initial_translation_errors'
+
+                with open("measurements.csv", 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows(reader[:-1])
+                    writer.writerow(last_row)
 
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)

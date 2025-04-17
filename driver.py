@@ -142,9 +142,14 @@ def main():
     # file to record first-time compile rate, compile rate, and testcase pass rate
     if not os.path.exists('measurements.csv'):
         with open('measurements.csv', 'w') as csvfile:
-            fieldnames = ['initial_translation', 'initial_translation_attempts', "initital_translation_errors", "compiles", "compiles_attempts", "final_translation_errors"]
+            fieldnames = ['model_name', 'file_name', 'initial_translation', 'initial_translation_attempts', "initital_translation_errors", "compiles", "compiles_attempts", "final_translation_errors"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
+        
+    with open('measurements.csv', 'a') as csvfile:
+        fieldnames = ["model_name", "file_name"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow({"model_name": options.model, "file_name": options.submodule_name})
 
     logging.basicConfig(
         filename="%s/transpilation.log" % options.work_dir,
