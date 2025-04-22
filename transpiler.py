@@ -348,12 +348,11 @@ class Transpiler:
                 last_row.append(f'{initial_translation}')  # Updating 'initial_translation'
                 last_row.append(f'{initial_translation_attempts}')  # Updating 'initial_translation_attempts'
                 last_row.append(f"{min_num_errs}") # Updating 'initial_translation_errors'
-
+          
                 with open("measurements.csv", 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows(reader[:-1])
                     writer.writerow(last_row)
-
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
         comp_out = compile_and_record_query(best_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
@@ -414,8 +413,14 @@ class Transpiler:
             with open("measurements.csv", 'r', newline='') as csvfile:
                 reader = list(csv.reader(csvfile))
 
+            cl_style, cl_complex, cl_correct, cl_perf = clippy_linter_stats(rust_code, src_dir)
             if len(reader) > 1:
                 last_row = reader[-1]
+                last_row.append(f"{cl_style}")  #Updating clippy style, complexity, correctness, and performance stats
+                last_row.append(f"{cl_complex}")
+                last_row.append(f"{cl_correct}")
+                last_row.append(f"{cl_perf}")
+
                 last_row.append(f'{fnl_num_err == 0}')  # Updating 'compiles'
                 last_row.append(f'{num_llm_call}')  # Updating 'compiles_attempts'
                 last_row.append(f"{fnl_num_err}") # Updating 'final_translation_errors'

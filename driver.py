@@ -142,7 +142,7 @@ def main():
     # file to record first-time compile rate, compile rate, and testcase pass rate
     if not os.path.exists('measurements.csv'):
         with open('measurements.csv', 'w') as csvfile:
-            fieldnames = ['model_name', 'file_name', 'initial_translation', 'initial_translation_attempts', "initital_translation_errors", "compiles", "compiles_attempts", "final_translation_errors"]
+            fieldnames = ['model_name', 'file_name', 'initial_translation', 'initial_translation_attempts', "initital_translation_errors", "clippy_style", "clippy_complexity", "clippy_correctness", "clippy_performance", "compiles", "compiles_attempts", "final_translation_errors"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
         

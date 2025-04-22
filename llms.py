@@ -408,7 +408,7 @@ class GPT4(QueryEngine):
             raise QueryError("Response doesn't contain useful information")
 
 class LocalQwen(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-7B-Instruct"):
+    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-3B-Instruct"):
         super().__init__(global_constraints)
         self.model_name = model_name
         self.generator = pipeline("text-generation", model=model_name, device_map="auto")
