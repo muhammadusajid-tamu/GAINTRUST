@@ -70,7 +70,7 @@ class Fixer:
                     ),
                     instruction="Fix the above compilation errors.",
                     constraints=[
-                        # "Give me the whole fixed code back, dont add explanation, comment or anything else.",
+                        "Give me the whole fixed code back, dont add explanation, comment or anything else.",
                         "Use only safe Rust.",
                         "Don't use raw pointers.",
                         "Use box pointer whenever possible. Box pointers are preferable to other alternatives.",
@@ -78,6 +78,7 @@ class Fixer:
                         "Try not to use Generics if possible.",
                         "Do not put any explanation or example comments.",
                         "Do not add a main function",
+                        "Put the fixed rust code in a markdown rust block.",
                     ],
                 )
 

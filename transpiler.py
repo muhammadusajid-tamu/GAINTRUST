@@ -3,6 +3,7 @@ import logging
 import anthropic
 from llms import QueryEngine, Prompt
 from utils import *
+import csv
 
 
 class Transpiler:
@@ -306,13 +307,19 @@ class Transpiler:
         )
 
         #print("DEBUG: Num attempts: " + self.transpl_attempt_budget)
+        with open(f"{self.work_dir}/initial_translation.txt", "w") as f:
+            f.write(f"{self.query_engine.stringify_prompt(prompt)}\n\n")
 
         min_num_errs = 2**32
+        initial_translation_attempts = 0
         for attempt in range(1, self.transpl_attempt_budget + 1):
+            initial_translation_attempts += 1
             cand_answer_processed = self.query_engine.generate_code(
                 prompt, model_params=self.model_params
             )
-            print("DEBUG: Prompted model")
+            # print("DEBUG: Prompted model")
+            with open(f"{self.work_dir}/initial_translation.txt", "a") as f:
+                f.write(f"==========(ATTEMPT {attempt})==========\n\n{cand_answer_processed}\n\n")
 
             comp_out = compile_and_record_query(cand_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
             print("DEBUG: Compiled and recorded")
@@ -328,6 +335,24 @@ class Transpiler:
             if not num_errs:
                 break
 
+        if min_num_errs == 0:
+            initial_translation = True
+        else:
+            initial_translation = False
+
+        with open("measurements.csv", 'r', newline='') as csvfile:
+            reader = list(csv.reader(csvfile))
+
+            if len(reader) > 1:
+                last_row = reader[-1]
+                last_row.append(f'{initial_translation}')  # Updating 'initial_translation'
+                last_row.append(f'{initial_translation_attempts}')  # Updating 'initial_translation_attempts'
+                last_row.append(f"{min_num_errs}") # Updating 'initial_translation_errors'
+          
+                with open("measurements.csv", 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows(reader[:-1])
+                    writer.writerow(last_row)
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
         comp_out = compile_and_record_query(best_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
@@ -370,8 +395,9 @@ class Transpiler:
             rust_code, fnl_comp_out, num_llm_call = self.comp_fixer.fix(
                 answer_processed, init_comp_out, src_dir
             )
+            fnl_num_err = fnl_comp_out
 
-            tot_num_llm_call_for_fix += num_llm_call
+            # tot_num_llm_call_for_fix += num_llm_call
             (
                 _,
                 init_err_c_num_dict,
@@ -379,38 +405,58 @@ class Transpiler:
                 _,
                 init_num_err,
             ) = init_comp_out
-            _, fnl_err_c_num_dict, fnl_err_phase_num_dict, _, fnl_num_err = fnl_comp_out
-
+            # _, fnl_err_c_num_dict, fnl_err_phase_num_dict, _, fnl_num_err = fnl_comp_out
             logging.info(
-                f"\t\tNum errors decreased from {init_num_err} to {fnl_num_err}. Fix path was {self.comp_fixer.fix_path}."
+                f"\tNumber of errors decreased from {init_num_err} to {fnl_num_err} via LLM."
             )
+
+            with open("measurements.csv", 'r', newline='') as csvfile:
+                reader = list(csv.reader(csvfile))
+
+            cl_style, cl_complex, cl_correct, cl_perf = clippy_linter_stats(rust_code, src_dir)
+            if len(reader) > 1:
+                last_row = reader[-1]
+                last_row.append(f"{cl_style}")  #Updating clippy style, complexity, correctness, and performance stats
+                last_row.append(f"{cl_complex}")
+                last_row.append(f"{cl_correct}")
+                last_row.append(f"{cl_perf}")
+
+                last_row.append(f'{fnl_num_err == 0}')  # Updating 'compiles'
+                last_row.append(f'{num_llm_call}')  # Updating 'compiles_attempts'
+                last_row.append(f"{fnl_num_err}") # Updating 'final_translation_errors'
+
+                with open("measurements.csv", 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows(reader[:-1])
+                    writer.writerow(last_row)
+
             if not fnl_num_err:
                 os.makedirs(f"{res_dir}/", exist_ok=True)
                 self.write_src_code_to_res_dir(res_dir, code)
                 with open(f"{res_dir}/{self.fname}.rs", "w") as fw:
                     fw.write(rust_code)
 
-                num_complete_fixed_transpl += 1
+                # num_complete_fixed_transpl += 1
                 compiles = True
 
-            cum_init_err_c_num_dict = {
-                k: cum_init_err_c_num_dict.get(k, 0) + init_err_c_num_dict.get(k, 0)
-                for k in set(cum_init_err_c_num_dict) | set(init_err_c_num_dict)
-            }
-            cum_fnl_err_c_num_dict = {
-                k: cum_fnl_err_c_num_dict.get(k, 0) + fnl_err_c_num_dict.get(k, 0)
-                for k in set(cum_fnl_err_c_num_dict) | set(fnl_err_c_num_dict)
-            }
-            cum_init_err_phase_num_dict = {
-                k: cum_init_err_phase_num_dict.get(k, 0)
-                + init_err_phase_num_dict.get(k, 0)
-                for k in set(cum_init_err_phase_num_dict) | set(init_err_phase_num_dict)
-            }
-            cum_fnl_err_phase_num_dict = {
-                k: cum_fnl_err_phase_num_dict.get(k, 0)
-                + fnl_err_phase_num_dict.get(k, 0)
-                for k in set(cum_fnl_err_phase_num_dict) | set(fnl_err_phase_num_dict)
-            }
+            # cum_init_err_c_num_dict = {
+            #     k: cum_init_err_c_num_dict.get(k, 0) + init_err_c_num_dict.get(k, 0)
+            #     for k in set(cum_init_err_c_num_dict) | set(init_err_c_num_dict)
+            # }
+            # cum_fnl_err_c_num_dict = {
+            #     k: cum_fnl_err_c_num_dict.get(k, 0) + fnl_err_c_num_dict.get(k, 0)
+            #     for k in set(cum_fnl_err_c_num_dict) | set(fnl_err_c_num_dict)
+            # }
+            # cum_init_err_phase_num_dict = {
+            #     k: cum_init_err_phase_num_dict.get(k, 0)
+            #     + init_err_phase_num_dict.get(k, 0)
+            #     for k in set(cum_init_err_phase_num_dict) | set(init_err_phase_num_dict)
+            # }
+            # cum_fnl_err_phase_num_dict = {
+            #     k: cum_fnl_err_phase_num_dict.get(k, 0)
+            #     + fnl_err_phase_num_dict.get(k, 0)
+            #     for k in set(cum_fnl_err_phase_num_dict) | set(fnl_err_phase_num_dict)
+            # }
         elif init_comp_out[-1]:
             logging.info("\tTranspilation FAILED. No fixer is set.")
         else:

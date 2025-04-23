@@ -4,3 +4,4 @@ all_statistics/
 bms/
 translations_only/
 transpilations/
+measurements.csv

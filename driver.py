@@ -20,6 +20,7 @@ from settings import Options
 import oracle
 from semantics import Candidate, CandidateFactory, SemanticsStrategy
 from configurator import Config
+import csv
 
 def record_cov_data(report: str, show: List[Tuple[str, str]], work_dir: str):
     with open(f"{work_dir}/cov_report.txt", "w") as f:
@@ -137,6 +138,18 @@ def main():
 
     crash_report = open(f"{options.work_dir}/crash_report.txt", "w")
     sys.stderr.write = crash_report.write
+
+    # file to record first-time compile rate, compile rate, and testcase pass rate
+    if not os.path.exists('measurements.csv'):
+        with open('measurements.csv', 'w') as csvfile:
+            fieldnames = ['model_name', 'file_name', 'initial_translation', 'initial_translation_attempts', "initital_translation_errors", "clippy_style", "clippy_complexity", "clippy_correctness", "clippy_performance", "compiles", "compiles_attempts", "final_translation_errors"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+        
+    with open('measurements.csv', 'a') as csvfile:
+        fieldnames = ["model_name", "file_name"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow({"model_name": options.model, "file_name": options.submodule_name})
 
     logging.basicConfig(
         filename="%s/transpilation.log" % options.work_dir,
