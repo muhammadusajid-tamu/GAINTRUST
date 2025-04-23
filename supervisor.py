@@ -102,13 +102,13 @@ class TaskRouter:
             5. Potential optimization opportunities
             
             You MUST respond with a valid JSON object containing ONLY these fields:
-            {
+            {{
                 "task_type": "DIRECT_TRANSPILATION", // One of: DIRECT_TRANSPILATION, DECOMPOSITION, OPTIMIZATION, ERROR_FIXING, TESTING
                 "reasoning": "Your reasoning here",
                 "complexity_score": 5, // A number from 1-10
                 "key_challenges": ["Challenge 1", "Challenge 2"],
                 "decomposition_strategy": "Strategy description if applicable, otherwise null"
-            }
+            }}
             
             Do not include any explanations, markdown formatting, or text outside of the JSON object.
             """),
@@ -771,4 +771,48 @@ def example_usage():
 
 
 if __name__ == "__main__":
-    example_usage()
+    import argparse
+    import os
+    import glob
+    parser = argparse.ArgumentParser(description="C to Rust transpilation (supervisor)")
+    parser.add_argument("--file", "-f", help="Path to C source file to transpile")
+    parser.add_argument("--method", choices=["supervisor", "supervisor_feedback"], default="supervisor", help="Transpilation method")
+    parser.add_argument("--work-dir", "-w", default="./workspace", help="Working directory for transpilation")
+    parser.add_argument("--model", default="local-qwen", help="Supervisor model name")
+    args = parser.parse_args()
+
+    # Collect C files
+    if args.file:
+        files = [args.file]
+    else:
+        wspace = os.path.join(args.work_dir, "wspace")
+        files = glob.glob(os.path.join(wspace, "*.c"))
+        if not files:
+            print(f"No .c files found in {wspace}")
+            exit(1)
+
+    # Initialize supervisor
+    if args.method == "supervisor_feedback":
+        sup = SupervisorWithFeedback(
+            supervisor_model=args.model, 
+            work_dir=args.work_dir
+        )
+    else:
+        sup = CToRustSupervisor(
+            supervisor_model=args.model, 
+            work_dir=args.work_dir
+        )
+
+    # Transpile each file
+    for file_path in files:
+        print(f"\nTranspiling: {file_path}")
+        with open(file_path, "r") as f:
+            c_code = f.read()
+        base = os.path.splitext(os.path.basename(file_path))[0]
+        if args.method == "supervisor_feedback":
+            result = sup.transpile_with_feedback(c_code, base)
+        else:
+            result = sup.transpile(c_code, base)
+        print("Success:", result.get("success"))
+        print("Number of errors:", result.get("num_errors"))
+        print("Output file:", result.get("output_path"))

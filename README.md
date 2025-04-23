@@ -45,38 +45,44 @@ Follow these steps to set up and run the project:
     python driver.py
     ```
 
-## C to Rust Transpilation with LangChain
+## C to Rust Transpilation with LangChain & Supervisor
 
-This project now includes enhanced C to Rust transpilation capabilities using LangChain integration and a supervisor architecture. These new features provide more efficient and effective code conversion with feedback loops for improved results.
+This project provides two ways to convert C code to Rust using LangChain and the supervisor architecture:
 
-### Key Components
+1. **Test Script** (`test_c_to_rust.py`)
+   ```sh
+   # Run built-in examples:
+   python test_c_to_rust.py --example linked_list --method all
 
-1. **LangChain Integration**
-   - `langchain_local_integration.py`: Adapts local models for use with LangChain and implements specialized C to Rust transpilation chains
-   - Provides direct transpilation and transpilation with feedback loops
+   # Transpile a custom C file:
+   python test_c_to_rust.py --file path/to/sample.c --method supervisor_feedback
+   ```
+   Available methods:
+   - `direct`: Basic transpilation
+   - `feedback`: Transpilation with error-correction loops
+   - `supervisor`: Task-routing supervisor
+   - `supervisor_feedback`: Supervisor + feedback loops
+   - `all`: Run all methods (built-in examples only)
 
-2. **Supervisor Architecture**
-   - `supervisor.py`: Implements a task routing system that analyzes C code and determines the appropriate transpilation strategy
-   - Manages the workflow and incorporates feedback loops for improved results
+2. **CLI** (`supervisor.py`)
+   Place your C files in `workspace/wspace/`, then from the project root:
+   ```powershell
+   # Transpile all .c files in workspace/wspace:
+   python supervisor.py --work-dir workspace
 
-3. **Testing**
-   - `test_c_to_rust.py`: Demonstrates the use of the C to Rust transpilation capabilities with various examples
-   - Supports multiple transpilation methods: direct, with feedback, supervisor-based, and supervisor with feedback
+   # Transpile a single file with feedback:
+   python supervisor.py --file workspace/wspace/sample_binsearch.c \
+     --work-dir workspace --method supervisor_feedback
+   ```
+   Flags:
+   - `--work-dir`: Working directory (default: `workspace`)
+   - `--file`: Path to a single C file (optional)
+   - `--method`: `supervisor` or `supervisor_feedback` (default: `supervisor`)
+   - `--model`: Supervisor model name (default: `local-qwen`)
 
-### Usage
+Outputs are written to:
+```
+workspace/results/<task_type>/<file_name>.rs
+```
 
-To test the C to Rust transpilation system:
-
-```sh
-# Test with built-in examples
-python test_c_to_rust.py --example linked_list --method all
-
-# Test with a custom C file
-python test_c_to_rust.py --file test_samples/sample.c --method supervisor_feedback
-
-# Available methods:
-# - direct: Basic transpilation
-# - feedback: Transpilation with error correction feedback loops
-# - supervisor: Transpilation with task routing
-# - supervisor_feedback: Transpilation with task routing and feedback loops
-# - all: Run all methods (only for built-in examples)
+Enjoy translating!

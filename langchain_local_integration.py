@@ -327,9 +327,10 @@ class CToRustTranspilerChain:
                 # Extract code from markdown if present
                 rust_code = self._extract_code_from_markdown(rust_code)
                 
-                # Save to file
-                rust_file_path = f"{src_dir}/{file_name}.rs"
-                with open(rust_file_path, "w") as f:
+                # Save to file in results directory
+                os.makedirs(res_dir, exist_ok=True)
+                rust_file_path = f"{res_dir}/{file_name}.rs"
+                with open(rust_file_path, "w", encoding="utf-8") as f:
                     f.write(rust_code)
                 
                 # Compile and check for errors
