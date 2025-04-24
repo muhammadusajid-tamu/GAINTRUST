@@ -1,6 +1,6 @@
 {
-    "benchmark_name": "cube",
-    "submodule_name": "cube",
+    "benchmark_name": "aptx_pack_codeword",
+    "submodule_name": "aptx_pack_codeword",
     "tag": "test",
     "n_prompt_examples": 4,
     "timeout": 3,
@@ -9,5 +9,5 @@
     "fallback_opt": "fix",
     "language": "c",
 
-    "model": "local-qwen"
+    "model": "codellama"
 }

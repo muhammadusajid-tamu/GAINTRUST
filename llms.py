@@ -134,19 +134,33 @@ class QueryEngine:
     def extract(response: str) -> str:
         #print("DEBUG: Query Engine Extracting")
         print("DEBUG: response: " + response)
-        tagged_block = re.search(r"<code>(?P<code>[\s\S]*?)</code>", response)
-        if tagged_block:
-           print("Found <> code block")
-           print(tagged_block["code"])
-           return tagged_block["code"]
-        backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", response)
-        if backticked_block:
-            print("Found backtick code block")
-            print(backticked_block.group("code"))
-            return backticked_block.group("code")
+        stripped = True
+        returnCode = response
+        while stripped:
+            stripped = False
+            tagged_block = re.search(r"<code>(?P<code>[\s\S]*?)</code>", returnCode)
+            if tagged_block:
+                print("Found <> code block")
+                print(tagged_block["code"])
+                returnCode =  tagged_block["code"]
+                stripped = True
+
+            backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", returnCode)
+            if backticked_block:
+                print("Found backtick code block")
+                print(backticked_block.group("code"))
+                returnCode =  backticked_block.group("code")
+                stripped = True
+
+            quoted_block = re.search(r"'''(rust)?(?P<code>[\s\S]*?)'''", returnCode)
+            if quoted_block:
+                print("Found quoted code block.")
+                print(quoted_block.group("code"))
+                returnCode = quoted_block.group("code")
+                stripped = True
 
         print("No codeblock found")
-        return response
+        return returnCode
 
     def messages(
         self,
@@ -502,7 +516,7 @@ class Deepseek(QueryEngine):
             raise QueryError(e)
     
 class CodeLlama(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "codellama:13b"):
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama:34b"):
         super().__init__(global_constraints)
         self.model_name = model_name
         print(f"DEBUG: Constructed local model - {model_name}")
