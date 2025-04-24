@@ -18,6 +18,9 @@ class Transpiler:
         query_engine: QueryEngine,
         transpl_attempt_budget,
         work_dir,
+        model_name,
+        submodule_name,
+        csv_path=None,
         model_params={"temperature": 0.2},
     ) -> None:
         self.src_lang = src_lang
@@ -34,6 +37,9 @@ class Transpiler:
         self.hint = ""
         self.model_params = model_params
         self.work_dir = work_dir
+        self.model_name = model_name
+        self.submodule_name = submodule_name
+        self.csv_path = csv_path
 
     def transpile(self):
         if self.prompt == "base":
@@ -67,7 +73,6 @@ class Transpiler:
     def transpile_decomp_iter(self):
         compiles = False
         logging.info(f"Now transpiling {self.fname}.")
-
         src_dir = f"{self.work_dir}/wspace/"
         res_dir = f"{self.work_dir}/results/"
 
@@ -89,7 +94,6 @@ class Transpiler:
             + "\n"
             + "\n".join(global_vars)
         )
-
         func_name = "header"
 
         all_imp = "\n".join(imports)
@@ -282,7 +286,6 @@ class Transpiler:
         with open(f"{self.benchmark_path}/{self.fname}.{self.src_lang}", "r") as f:
             code = f.read()
 
-       
         src_dir = f"{self.work_dir}/wspace/"
         res_dir = f"{self.work_dir}/results/"
         print("DEBUG: Writing prompt")
@@ -326,7 +329,6 @@ class Transpiler:
 
             comp_out = compile_and_record_query(cand_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
             print("DEBUG: Compiled and recorded")
-
             cand_init_comp_out = parse_error_timepass(comp_out.stderr, self.fname)
             num_errs = cand_init_comp_out[-1]
 
@@ -343,10 +345,10 @@ class Transpiler:
         else:
             initial_translation = False
     
-        with open('measurements.csv', 'a') as csvfile:
-            fieldnames = ['initial_translation', 'initial_translation_attempts', "initial_translation_errors"]
+        with open(self.csv_path, 'a') as csvfile:
+            fieldnames = ['submodule_name', 'initial_translation', 'initial_translation_attempts', "initial_translation_errors"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({"initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts, 'initial_translation_errors': num_errs})
+            writer.writerow({'submodule_name': self.submodule_name, "initial_translation": initial_translation, 'initial_translation_attempts': initial_translation_attempts, 'initial_translation_errors': num_errs})
 
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
@@ -405,7 +407,7 @@ class Transpiler:
                 f"\tNumber of errors decreased from {init_num_err} to {fnl_num_err} via LLM."
             )
 
-            with open("measurements.csv", 'r', newline='') as csvfile:
+            with open(self.csv_path, 'r', newline='') as csvfile:
                 reader = list(csv.reader(csvfile))
 
             if len(reader) > 1:
@@ -414,7 +416,7 @@ class Transpiler:
                 last_row.append(f'{num_llm_call}')  # Updating 'compiles_attempts'
                 last_row.append(f"{fnl_num_err}") # Updating 'final_translation_errors'
 
-                with open("measurements.csv", 'w', newline='') as csvfile:
+                with open(self.csv_path, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows(reader[:-1])
                     writer.writerow(last_row)

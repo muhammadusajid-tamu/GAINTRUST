@@ -98,12 +98,12 @@ class Fixer:
                     break
 
                 rep_counter += 1
-                if rep_counter == 4:
+                if rep_counter == 3:
                     rust_code = snap
                     break
 
             # we project that 12 would give #llm_calls similar to adv-err-fix
-            if num_llm_call >= 10:
+            if num_llm_call >= 5:
                 break
 
         return rust_code, len(errors), num_llm_call

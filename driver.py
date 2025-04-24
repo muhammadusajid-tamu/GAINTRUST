@@ -141,9 +141,17 @@ def main():
     sys.stderr.write = crash_report.write
 
     # file to record first-time compile rate, compile rate, and testcase pass rate
-    if not os.path.exists('measurements.csv'):
-        with open('measurements.csv', 'w') as csvfile:
-            fieldnames = ['initial_translation', 'initial_translation_attempts', "initital_translation_errors", "compiles", "compiles_attempts", "final_translation_errors"]
+    results_dir = os.path.join("results", options.model, options.benchmark_name)
+    os.makedirs(results_dir, exist_ok=True)
+
+    csv_path = os.path.join(results_dir, "measurements.csv")
+    if not os.path.exists(csv_path):
+        with open(csv_path, 'w') as csvfile:
+            fieldnames = [
+                'submodule_name', 'initial_translation', 'initial_translation_attempts', 
+                "initital_translation_errors", "compiles", 
+                "compiles_attempts", "final_translation_errors"
+            ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -179,10 +187,11 @@ def main():
         query_engine,
         options.transpl_attempt_budget,
         options.work_dir,
+        model_name=options.model,
+        submodule_name=options.submodule_name,
+        csv_path=csv_path,
         model_params={"temperature": options.initial_temperature},
     )
-
-
 
     # INITIAL ATTEMPT
     transpilation = initial_transpilation(transpiler, options)
