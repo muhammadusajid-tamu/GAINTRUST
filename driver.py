@@ -6,8 +6,8 @@ import logging
 # import botocore
 import numpy as np
 
-# from dataclasses import dataclass
-#from argparse_dataclass import ArgumentParser
+from dataclasses import dataclass
+from argparse_dataclass import ArgumentParser
 from typing import List, Tuple, Optional
 import tempfile
 import sys
@@ -105,9 +105,10 @@ def initial_transpilation(
 
 def main():
     # test()
-    #parser = ArgumentParser(Options)
-    #options = parser.parse_args()
-    options = Config.from_json_file("config.json")
+    parser = ArgumentParser(Options)
+    options = parser.parse_args()
+
+    #options = Config.from_json_file("config.json")
     # config = botocore.config.Config(
     #     read_timeout=900, connect_timeout=900, retries={"max_attempts": 0}
     # )

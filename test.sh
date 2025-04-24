@@ -1,1 +1,1 @@
-python3 driver.py
+python driver.py --benchmark-name aptx_bin_search --submodule-name aptx_bin_search --tag test --language c --fallback_opt fix --model local-qwen
