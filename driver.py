@@ -99,6 +99,10 @@ def initial_transpilation(
             return candidate, factory
         else:
             logging.info("Candidate does not compile. Retrying.")
+            with open("measurements.csv", 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow({"model_name": options.model, "file_name": options.submodule_name})
+    
 
     return None
 

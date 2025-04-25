@@ -414,6 +414,8 @@ class Transpiler:
                 reader = list(csv.reader(csvfile))
 
             cl_style, cl_complex, cl_correct, cl_perf = clippy_linter_stats(rust_code, src_dir)
+
+            print("DEBUG: Linting completed")
             if len(reader) > 1:
                 last_row = reader[-1]
                 last_row.append(f"{cl_style}")  #Updating clippy style, complexity, correctness, and performance stats

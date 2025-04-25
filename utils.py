@@ -735,25 +735,31 @@ def clippy_linter_stats(code, work_dir):
             print("DEBUG: Clippy completed successfully")
 
         category_counts = Counter()
-
+        print(category_counts)
         # Combine stdout and stderr for parsing
         # output_lines = result.stdout.splitlines() + result.stderr.splitlines()
-
         for line in output_lines:
+            line = line.strip()
+            if not line.startswith("{"):
+                continue  # skip malformed or irrelevant lines
             try:
                 msg = json.loads(line)
                 if msg.get("reason") == "compiler-message":
-                    message = msg.get("message", {})
-                    code_info = message.get("code", {})
+                    message = msg.get("message")
+                    if not isinstance(message, dict):
+                        continue
+                    code_info = message.get("code") or {}
                     lint_code = code_info.get("code", "")
                     if lint_code.startswith("clippy::"):
                         lint_name = extract_category(lint_code)
                         category = LINT_CATEGORY_MAP.get(lint_name)
                         if category in categories:
                             category_counts[category] += 1
-            except json.JSONDecodeError:
+            except Exception as e:
+                print("Unhandled exception:", e)
                 continue
 
+        print("Final counts:", category_counts)
         return tuple(category_counts[cat] for cat in categories)
 
 
