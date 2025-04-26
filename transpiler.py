@@ -275,10 +275,15 @@ class Transpiler:
 
         compiles = False
         logging.info(f"Now transpiling {self.fname}.")
-        with open(f"{self.benchmark_path}/{self.fname}.{self.src_lang}", "r") as f:
-            code = f.read()
 
-       
+        try:
+            file_path = f"{self.benchmark_path}/{self.fname}.{self.src_lang}"
+            with open(file_path, "r") as f:
+                code = f.read()
+        except Exception as e:
+            print(f"Exception occurred while reading file: {e}")
+            raise 
+
         src_dir = f"{self.work_dir}/wspace/"
         res_dir = f"{self.work_dir}/results/"
         print("DEBUG: Writing prompt")

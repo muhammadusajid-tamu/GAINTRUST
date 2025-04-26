@@ -132,19 +132,33 @@ class QueryEngine:
     def extract(response: str) -> str:
         #print("DEBUG: Query Engine Extracting")
         print("DEBUG: response: " + response)
-        tagged_block = re.search(r"<code>(?P<code>[\s\S]*)</code>", response)
-        if tagged_block:
-           print("Found <> code block")
-           print(tagged_block["code"])
-           return tagged_block["code"]
-        backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", response)
-        if backticked_block:
-            print("Found backtick code block")
-            print(backticked_block.group("code"))
-            return backticked_block.group("code")
+        stripped = True
+        returnCode = response
+        while stripped:
+            stripped = False
+            tagged_block = re.search(r"<code>(?P<code>[\s\S]*?)</code>", returnCode)
+            if tagged_block:
+                print("Found <> code block")
+                print(tagged_block["code"])
+                returnCode = tagged_block["code"]
+                stripped = True
+            
+            backticked_block = re.search(r"```(rust)?(?P<code>[\s\S]*?)```", returnCode)
+            if backticked_block:
+                print("Found backtick code block")
+                print(backticked_block.group("code"))
+                returnCode = backticked_block.group("code")
+                stripped = True
 
-        print("No codeblock found")
-        return response
+            quoted_block = re.search(r"'''(rust)?(?P<code>[\s\S]*?)'''", returnCode)
+            if quoted_block:
+                print("Found quoted code block")
+                print(quoted_block.group("code"))
+                returnCode = quoted_block.group("code")
+                stripped = True
+
+        # print("No codeblock found")
+        return returnCode
 
     def messages(
         self,
@@ -420,7 +434,7 @@ class GPT4(QueryEngine):
             raise QueryError("Response doesn't contain useful information")
 
 class LocalQwen(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"):
+    def __init__(self, global_constraints: List[str], model_name: str = "Qwen/Qwen2.5-3B-Instruct"):
         super().__init__(global_constraints)
         self.model_name = model_name
         self.generator = pipeline("text-generation", model=model_name, device_map="auto")

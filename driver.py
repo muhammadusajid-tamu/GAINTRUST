@@ -13,6 +13,7 @@ import tempfile
 import sys
 import shutil
 
+from utils import *
 from fixer import Fixer
 from llms import QueryEngineFactory
 from transpiler import Transpiler
@@ -81,8 +82,7 @@ def test():
 def initial_transpilation(
     transpiler: Transpiler, options: Options
 ) -> Optional[Tuple[Candidate, CandidateFactory]]:
-    INIT_ATTEMPT_BUDGTE = 5
-    for _ in range(INIT_ATTEMPT_BUDGTE):
+    for _ in range(options.transpl_attempt_budget):
         compiles = transpiler.transpile()
         if compiles:
             logging.info(
@@ -161,21 +161,35 @@ def main():
     fix_budget = options.fix_budget
 
 
-    prompt = "base"
     if options.c2rust == True:
-        prompt = "c2rust"
-    transpiler = Transpiler(
-        prompt,
-        comp_fixer,
-        eq_fixer,
-        options.language,
-        options.benchmark_name,
-        options.submodule_name,
-        query_engine,
-        options.transpl_attempt_budget,
-        options.work_dir,
-        model_params={"temperature": options.initial_temperature},
-    )
+        print("DEBUG: C2Rust enabled, attempting to c2rust transpile")
+        prepare_c2rust(options.language, options.benchmark_name, options.submodule_name)
+
+        transpiler = Transpiler(
+            "c2rust",
+            comp_fixer,
+            eq_fixer,
+            "rs",
+            options.benchmark_name,
+            options.submodule_name,
+            query_engine,
+            options.transpl_attempt_budget,
+            options.work_dir,
+            model_params={"temperature": options.initial_temperature},
+        )
+    else:
+        transpiler = Transpiler(
+            "base",
+            comp_fixer,
+            eq_fixer,
+            options.language,
+            options.benchmark_name,
+            options.submodule_name,
+            query_engine,
+            options.transpl_attempt_budget,
+            options.work_dir,
+            model_params={"temperature": options.initial_temperature},
+        )
 
 
 
