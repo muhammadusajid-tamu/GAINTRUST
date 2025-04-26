@@ -28,7 +28,7 @@ class Options:
     @property
     def work_dir(self) -> str:
         return (
-            f"transpilations/{self.language}/{self.benchmark_name}/{self.tag}/"
+            f"transpilations/{self.model}/{self.language}/{self.benchmark_name}/{self.tag}/"
         )
 
     @property
