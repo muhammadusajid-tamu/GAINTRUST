@@ -8,7 +8,7 @@
     "fix_budget": 1,
     "fallback_opt": "fix",
     "language": "c",
-    "c2rust": true,
+    "c2rust": false,
 
     "model": "local-qwen"
 }
