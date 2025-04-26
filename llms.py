@@ -470,7 +470,7 @@ class LocalLlama33(QueryEngine):
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 options={
-                    "temperature": model_params.get("temperature", 0.7),
+                    "temperature": model_params.get("temperature", 0.2),
                     "max_tokens": model_params.get("max_length", 512)
                 }
             )
@@ -516,7 +516,7 @@ class Deepseek(QueryEngine):
             raise QueryError(e)
     
 class CodeLlama(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "codellama:34b"):
+    def __init__(self, global_constraints: List[str], model_name: str = "codellama:34b-instruct"):
         super().__init__(global_constraints)
         self.model_name = model_name
         print(f"DEBUG: Constructed local model - {model_name}")
