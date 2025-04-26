@@ -445,7 +445,7 @@ class LocalQwen(QueryEngine):
             raise QueryError(e)
     
 class LocalLlama33(QueryEngine):
-    def __init__(self, global_constraints: List[str], model_name: str = "llama3.3:latest"):
+    def __init__(self, global_constraints: List[str], model_name: str = "llama3.3:70b-instruct-q3_K_M"):
         super().__init__(global_constraints)
         self.model_name = model_name
         print(f"DEBUG: Constructed local model - {model_name}")
