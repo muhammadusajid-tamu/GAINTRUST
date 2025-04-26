@@ -1041,3 +1041,30 @@ def ochiai(num_cf, num_uf, num_cs, num_us):
     except ZeroDivisionError:
         return 0
 
+def prepare_c2rust(src_lang, benchmark, fname):
+    benchmark_path = f"bms/{src_lang}/{benchmark}"
+    c_filepath = f"{benchmark_path}/{fname}.{src_lang}"
+
+    if not os.path.isfile(c_filepath):
+        return f"Error: File '{c_filepath}' does not exist."
+
+    output_dir = os.path.dirname(os.path.abspath(c_filepath))
+
+    print(f"Calling 'c2rust transpile {c_filepath}")
+    try:
+        subprocess.run(
+            f"c2rust transpile {c_filepath}",
+            shell=True,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Transpilation failed: {e}")
+    except FileNotFoundError:
+        print("Error: c2rust is not installed or not found in PATH.")
+    except Exception as e:
+        print("Other Exception: ", e)
+    
+    try:
+        os.makedirs(f"bms/rs/{benchmark}/", exist_ok=True)
+        subprocess.run(f"cp bms/{src_lang}/{benchmark}/{fname}.rs bms/rs/{benchmark}/{fname}.rs", shell=True)
+    except Exception as e:
+        print(f"Copying transpilation failed: {e}")
