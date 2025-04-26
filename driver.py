@@ -149,6 +149,7 @@ def main():
         with open(csv_path, 'w') as csvfile:
             fieldnames = [
                 'submodule_name', 'initial_translation', 'initial_translation_attempts', 
+                "clippy_style", "clippy_complexity", "clippy_correctness", "clippy_performance", 
                 "initital_translation_errors", "compiles", 
                 "compiles_attempts", "final_translation_errors"
             ]

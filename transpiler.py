@@ -432,9 +432,17 @@ class Transpiler:
 
             with open(self.csv_path, 'r', newline='') as csvfile:
                 reader = list(csv.reader(csvfile))
+                
+            cl_style, cl_complex, cl_correct, cl_perf = clippy_linter_stats(rust_code, src_dir)
 
+            print("DEBUG: Linting completed")
             if len(reader) > 1:
                 last_row = reader[-1]
+                last_row.append(f"{cl_style}")  #Updating clippy style, complexity, correctness, and performance stats
+                last_row.append(f"{cl_complex}")
+                last_row.append(f"{cl_correct}")
+                last_row.append(f"{cl_perf}")
+
                 last_row.append(f'{fnl_num_err == 0}')  # Updating 'compiles'
                 last_row.append(f'{num_llm_call}')  # Updating 'compiles_attempts'
                 last_row.append(f"{fnl_num_err}") # Updating 'final_translation_errors'
