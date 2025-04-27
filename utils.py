@@ -512,7 +512,7 @@ def claude_gen(query_engine, prompt, model_params={"temperature": 0.2}):
     #     }
     # )
 
-    # modelId = "anthropic.claude-v2:1"  # TODO compare anthropic.claude-v2 and anthropic.claude-v2:1 later
+    # modelId = "anthropic.claude-v2:1"  # TODO compare anthropic.claude-v2 and anthropropic.claude-v2:1 later
     # accept = "application/json"
     # contentType = "application/json"
 
@@ -647,32 +647,34 @@ def clean_answer_mech(answer):
 def compile_and_record_query(
     code: str, work_dir: str, prompt: str = "", log_id=0
 ) -> subprocess.CompletedProcess:
-    if Path(f"{work_dir}").is_dir():
-        with cd(f"{work_dir}"):
-            print("DEBUG: Directory exists, cleaning")
-            subprocess.run(f"cargo clean", capture_output=True, shell=True)
-    else:
-        print("DEBUG: Directory doesn't exist, initializing")
-        # subprocess.run(f"cargo new {work_dir}", capture_output=True, shell=True)
-        subprocess.run(f"cargo new --lib {work_dir}", capture_output=True, shell=True)
-        os.makedirs(f"{work_dir}/logs", exist_ok=True)
-        with open(
-            f"{work_dir}/Cargo.toml", "a"
-        ) as fw:  # add some dependencies by default
+    crate_toml = Path(work_dir) / "Cargo.toml"
+    if not crate_toml.exists():
+        print("DEBUG: Initializing crate")
+        if not Path(work_dir).exists():
+            subprocess.run(f"cargo new --lib {work_dir}", capture_output=True, shell=True)
+        else:
+            subprocess.run(f"cargo init --lib {work_dir}", capture_output=True, shell=True)
+        # Add default dependencies
+        with open(crate_toml, "a", encoding="utf-8") as fw:
+            fw.write("\n[dependencies]\n")
             fw.write('rand = "0.8.4"\n')
             fw.write('libc = "0.2"\n')
-            fw.write('regex = "1.10.2"\n')  # c urlparser benchmark
-            fw.write('lazy_static = "1.4.0"\n')  # go ACH benchmark
-            fw.write('once_cell = "1.19.0"\n')  # go ACH benchmark
+            fw.write('regex = "1.10.2"\n')
+            fw.write('lazy_static = "1.4.0"\n')
+            fw.write('once_cell = "1.19.0"\n')
+    else:
+        print("DEBUG: Crate exists, cleaning")
+        with cd(work_dir):
+            subprocess.run("cargo clean", capture_output=True, shell=True)
 
     os.makedirs(f"{work_dir}/logs", exist_ok=True)
+    os.makedirs(f"{work_dir}/src", exist_ok=True)
     with open(f"{work_dir}/logs/prog_{log_id}.ans", "w") as f:
         f.write(f"{prompt}\n\n==========\n\n{code}")
     with open(f"{work_dir}/logs/prog_{log_id}.rs", "w") as f:
         f.write(code)  # for logging purpose
-    # with open(f"{work_dir}/src/main.rs", "w") as f:
-    with open(f"{work_dir}/src/lib.rs", "w") as f:
-        f.write(code)  # has to be written in main, this will be over-written with fixes
+    with open(f"{work_dir}/src/lib.rs", "w", encoding="utf-8") as f:
+        f.write(code)  # will be overwritten by feedback fixes
 
     with cd(f"{work_dir}"):
         comp_output = subprocess.run(
@@ -689,6 +691,26 @@ def compile_and_record_query(
 
     return comp_output
 
+
+
+def rudra_suggest(work_dir: str, log_id) -> str:
+    """Generate rudra suggestions by explaining Rust error codes."""
+    import re
+    err_path = os.path.join(work_dir, "logs", f"prog_{log_id}.err")
+    if not os.path.exists(err_path):
+        return ""
+    suggestions = []
+    with open(err_path, encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            m = re.search(r"error\[(E[0-9]+)\]", line)
+            if m:
+                code = m.group(1)
+                proc = subprocess.run(
+                    f"rustc --explain {code}",
+                    capture_output=True, shell=True
+                )
+                suggestions.append(proc.stdout.decode("utf-8", errors="ignore"))
+    return "\n".join(suggestions)
 
 def extract_category(clippy_code):
     if clippy_code and clippy_code.startswith("clippy::"):
@@ -763,37 +785,37 @@ def clippy_linter_stats(code, work_dir):
         return tuple(category_counts[cat] for cat in categories)
 
 
+
 def postprocess(answer, work_dir, prompt="", log_id=0):
     answer_clean = clean_answer_mech(answer)
     # if "fn main" not in answer_clean:
     #     answer_clean += "\n\nfn main(){}\n"
 
-    if Path(f"{work_dir}").is_dir():
-        with cd(f"{work_dir}"):
-            subprocess.run(f"cargo clean", capture_output=True, shell=True)
-    else:
-        # subprocess.run(f"cargo new {work_dir}", capture_output=True, shell=True)
-        subprocess.run(f"cargo new --lib {work_dir}", capture_output=True, shell=True)
-        os.makedirs(f"{work_dir}/logs", exist_ok=True)
-        with open(
-            f"{work_dir}/Cargo.toml", "a"
-        ) as fw:  # add some dependencies by default
+    crate_toml = Path(work_dir) / "Cargo.toml"
+    if not crate_toml.exists():
+        print("DEBUG: Initializing crate for postprocess")
+        if not Path(work_dir).exists():
+            subprocess.run(f"cargo new --lib {work_dir}", capture_output=True, shell=True)
+        else:
+            subprocess.run(f"cargo init --lib {work_dir}", capture_output=True, shell=True)
+        # Add default dependencies
+        with open(crate_toml, "a", encoding="utf-8") as fw:
             fw.write('rand = "0.8.4"\n')
             fw.write('libc = "0.2"\n')
-            fw.write('regex = "1.10.2"\n')  # c urlparser benchmark
-            fw.write('lazy_static = "1.4.0"\n')  # go ACH benchmark
-            fw.write('once_cell = "1.19.0"\n')  # go ACH benchmark
+            fw.write('regex = "1.10.2"\n')
+            fw.write('lazy_static = "1.4.0"\n')
+            fw.write('once_cell = "1.19.0"\n')
+    else:
+        with cd(work_dir):
+            subprocess.run("cargo clean", capture_output=True, shell=True)
 
     os.makedirs(f"{work_dir}/logs", exist_ok=True)
     with open(f"{work_dir}/logs/prog_{log_id}.ans", "w") as f:
         f.write(f"{prompt}\n\n==========\n\n{answer}")
     with open(f"{work_dir}/logs/prog_{log_id}.rs", "w") as f:
         f.write(answer_clean)  # for logging purpose
-    # with open(f"{work_dir}/src/main.rs", "w") as f:
-    with open(f"{work_dir}/src/lib.rs", "w") as f:
-        f.write(
-            answer_clean
-        )  # has to be written in main, this will be over-written with fixes
+    with open(f"{work_dir}/src/lib.rs", "w", encoding="utf-8") as f:
+        f.write(answer_clean)  # will be overwritten by feedback fixes
 
     with cd(f"{work_dir}"):
         comp_output = subprocess.run(
@@ -1040,6 +1062,8 @@ def ochiai(num_cf, num_uf, num_cs, num_us):
         return num_cf / ((num_cf + num_uf) * (num_cf + num_cs)) ** (0.5)
     except ZeroDivisionError:
         return 0
+
+
 
 def prepare_c2rust(src_lang, benchmark, fname):
     benchmark_path = f"bms/{src_lang}/{benchmark}"

@@ -1,0 +1,34 @@
+- The code must be translated from C to Rust.
+- The code must use the same variable names and function names as in the original C code.
+- The code must handle all possible input scenarios, including edge cases such as negative values, out-of-bounds indices, and invalid intervals.
+- The code must be idiomatic Rust, meaning it should follow Rust's best practices and conventions.
+- The code must be self-contained, meaning it does not rely on external variables or functions defined outside of the main program.
+- The code must be optimized for performance, meaning it should be efficient and avoid unnecessary operations.
+- The code must be well-documented, meaning it should have clear and concise comments explaining its purpose and functionality.
+- The code must be tested thoroughly, meaning it should be verified by other developers to ensure correctness and reliability.
+- The code must be maintained, meaning it should be regularly updated and improved upon over time to address new requirements and improve existing features.
+- The code must be reusable, meaning it should be easily adaptable to different programming languages and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and produce accurate results even when dealing with very large data sets.
+- The code must be maintainable, meaning it should be easy to understand and modify by other developers.
+- The code must be portable, meaning it should work correctly across a wide range of operating systems and hardware platforms.
+- The code must be documented, meaning it should provide clear and concise documentation explaining its purpose and functionality.
+- The code must be tested, meaning it should be verified by other developers to ensure correctness and reliability.
+- The code must be reusable, meaning it should be easily adaptable to different programming languages and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and produce accurate results even when dealing with very large data sets.
+- The code must be maintainable, meaning it should be easy to understand and modify by other developers.
+- The code must be portable, meaning it should work correctly across a wide range of operating systems and hardware platforms.
+- The code must be documented, meaning it should provide clear and concise documentation explaining its purpose and functionality.
+- The code must be tested, meaning it should be verified by other developers to ensure correctness and reliability.
+- The code must be reusable, meaning it should be easily adaptable to different programming languages and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and produce accurate results even when dealing with very large data sets.
+- The code must be maintainable, meaning it should be easy to understand and modify by other developers.
+- The code must be portable, meaning it should work correctly across a wide range of operating systems and hardware platforms.
+- The code must be documented, meaning it should provide clear and concise documentation explaining its purpose and functionality.
+- The code must be tested, meaning it should be verified by other developers to ensure correctness and reliability.
+- The code must be reusable, meaning it should be easily adaptable to different programming languages and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and produce accurate results even when dealing with very large data sets.
+- The code must be maintainable, meaning it should be easy to understand and modify by other developers.
+- The code must be portable, meaning it should work correctly across a wide range of operating systems and hardware platforms.
+- The code must be documented, meaning it should provide clear and concise documentation explaining its purpose and functionality.
+- The code must be tested, meaning it should be verified by other developers to ensure correctness and reliability.
+- The code must be

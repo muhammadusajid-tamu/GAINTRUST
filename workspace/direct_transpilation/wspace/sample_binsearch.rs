@@ -1,0 +1,37 @@
+- The code must be translated from C to Rust.
+- The code must use the same variable names and function names as the original C code.
+- The code must handle all possible input scenarios, including edge cases.
+- The code must be idiomatic Rust, meaning it should follow Rust's best practices and conventions.
+- The code must be self-contained, meaning it does not rely on external variables or functions.
+- The code must be optimized for performance, meaning it should be as efficient as possible while still adhering to Rust's design principles.
+- The code must be well-documented, meaning it should have clear and concise comments explaining its functionality and purpose.
+- The code must be tested thoroughly, meaning it should be verified by a variety of test cases to ensure correctness and reliability.
+- The code must be maintained, meaning it should be regularly updated and improved upon over time to keep up with changes in Rust and other programming languages.
+- The code must be reusable, meaning it should be easily adaptable to different situations and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and outputs efficiently.
+- The code must be maintainable, meaning it should be easy to understand and modify when necessary.
+- The code must be portable, meaning it should work correctly across different operating systems and hardware platforms.
+- The code must be secure, meaning it should protect against common security vulnerabilities and attacks.
+- The code must be efficient, meaning it should run quickly and perform well under various conditions.
+- The code must be flexible, meaning it should be designed to support a wide range of use cases and applications.
+- The code must be customizable, meaning it should allow for customization and modification of its behavior and features.
+- The code must be open-source, meaning it should be freely available for anyone to use, modify, and distribute.
+- The code must be reproducible, meaning it should produce consistent results each time it is executed.
+- The code must be reusable, meaning it should be easily adaptable to different situations and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and outputs efficiently.
+- The code must be maintainable, meaning it should be easily adaptable to different situations and environments.
+- The code must be portable, meaning it should work correctly across different operating systems and hardware platforms.
+- The code must be secure, meaning it should protect against common security vulnerabilities and attacks.
+- The code must be efficient, meaning it should run quickly and perform well under various conditions.
+- The code must be flexible, meaning it should be designed to support a wide range of use cases and applications.
+- The code must be customizable, meaning it should allow for customization and modification of its behavior and features.
+- The code must be open-source, meaning it should be freely available for anyone to use, modify, and distribute.
+- The code must be reproducible, meaning it should produce consistent results each time it is executed.
+- The code must be reusable, meaning it should be easily adaptable to different situations and environments.
+- The code must be scalable, meaning it should be able to handle large inputs and outputs efficiently.
+- The code must be maintainable, meaning it should be easily adaptable to different situations and environments.
+- The code must be portable, meaning it should work correctly across different operating systems and hardware platforms.
+- The code must be secure, meaning it should protect against common security vulnerabilities and attacks.
+- The code must be efficient, meaning it should run quickly and perform well under various conditions.
+- The code must be flexible, meaning it should be designed to support a wide range of use cases and applications.
+- The code must be

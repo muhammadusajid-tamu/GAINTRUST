@@ -1,0 +1,1 @@
+./workspace/wspace/sample_factorial.rs
