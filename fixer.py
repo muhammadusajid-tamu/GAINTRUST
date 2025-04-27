@@ -103,7 +103,7 @@ class Fixer:
                     break
 
             # we project that 12 would give #llm_calls similar to adv-err-fix
-            if num_llm_call >= 5:
+            if num_llm_call >= 3:
                 break
 
         return rust_code, len(errors), num_llm_call

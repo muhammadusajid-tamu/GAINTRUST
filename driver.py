@@ -141,16 +141,15 @@ def main():
     sys.stderr.write = crash_report.write
 
     # file to record first-time compile rate, compile rate, and testcase pass rate
-    results_dir = os.path.join("results", options.model, options.benchmark_name)
+    results_dir = os.path.join("results", options.language, options.model, options.benchmark_name)
     os.makedirs(results_dir, exist_ok=True)
 
     csv_path = os.path.join(results_dir, "measurements.csv")
     if not os.path.exists(csv_path):
         with open(csv_path, 'w') as csvfile:
             fieldnames = [
-                'submodule_name', 'initial_translation', 'initial_translation_attempts', 
-                "clippy_style", "clippy_complexity", "clippy_correctness", "clippy_performance", 
-                "initital_translation_errors", "compiles", 
+                'submodule_name', 'initial_translation', 'initial_translation_attempts', "initital_translation_errors",
+                "clippy_style", "clippy_complexity", "clippy_correctness", "clippy_performance", "compiles", 
                 "compiles_attempts", "final_translation_errors"
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
