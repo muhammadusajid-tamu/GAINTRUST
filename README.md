@@ -46,25 +46,7 @@ Follow these steps to set up and run the project:
     ```
 
 ## C to Rust Transpilation with LangChain & Supervisor
-
-This project provides two ways to convert C code to Rust using LangChain and the supervisor architecture:
-
-1. **Test Script** (`test_c_to_rust.py`)
-   ```sh
-   # Run built-in examples:
-   python test_c_to_rust.py --example linked_list --method all
-
-   # Transpile a custom C file:
-   python test_c_to_rust.py --file path/to/sample.c --method supervisor_feedback
-   ```
-   Available methods:
-   - `direct`: Basic transpilation
-   - `feedback`: Transpilation with error-correction loops
-   - `supervisor`: Task-routing supervisor
-   - `supervisor_feedback`: Supervisor + feedback loops
-   - `all`: Run all methods (built-in examples only)
-
-2. **CLI** (`supervisor.py`)
+   **CLI** (`supervisor.py`)
    Place your C files in `workspace/wspace/`, then from the project root:
    ```powershell
    # Transpile all .c files in workspace/wspace:
@@ -84,5 +66,3 @@ Outputs are written to:
 ```
 workspace/results/<task_type>/<file_name>.rs
 ```
-
-Enjoy translating!
