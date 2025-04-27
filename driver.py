@@ -108,33 +108,17 @@ def initial_transpilation(
 
 
 def main():
-    # test()
     #parser = ArgumentParser(Options)
     #options = parser.parse_args()
     options = Config.from_json_file("config.json")
-    # config = botocore.config.Config(
-    #     read_timeout=900, connect_timeout=900, retries={"max_attempts": 0}
-    # )
-    # session = boto3.Session()
-    # query_engine = session.client("bedrock-runtime", config=config)
 
     global_constraints = []
     if options.language == "c":
         global_constraints.append("Consider using functions like `wrapping_add` to simulate C semantics.")
 
-    if options.language == "go" and options.benchmark_name != "ach":
-        global_constraints.append("If possible, use free standing functions instead of associated methods/functions.")
-
-    if options.benchmark_name == "triangolatte":
-        global_constraints.append("Unless necessary, don't generate `new` method for structs.")
-
-    if options.benchmark_name == "go-edlib":
-        global_constraints.append("Note that `int` in Golang is platform dependent, which should be mapped to `isize` in Rust.")
-
     query_engine = QueryEngineFactory.create_engine(options.model, global_constraints)
 
     if os.path.exists(options.work_dir):
-        # os.rmdir(options.work_dir)
         shutil.rmtree(options.work_dir)
     os.makedirs(options.work_dir)
 
