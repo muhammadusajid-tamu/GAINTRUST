@@ -13,6 +13,7 @@ import tempfile
 import sys
 import shutil
 
+from utils import *
 from fixer import Fixer
 from llms import QueryEngineFactory
 from transpiler import Transpiler
@@ -20,6 +21,7 @@ from settings import Options
 import oracle
 from semantics import Candidate, CandidateFactory, SemanticsStrategy
 from configurator import Config
+import csv
 
 def record_cov_data(report: str, show: List[Tuple[str, str]], work_dir: str):
     with open(f"{work_dir}/cov_report.txt", "w") as f:
@@ -81,8 +83,7 @@ def test():
 def initial_transpilation(
     transpiler: Transpiler, options: Options
 ) -> Optional[Tuple[Candidate, CandidateFactory]]:
-    INIT_ATTEMPT_BUDGTE = 5
-    for _ in range(INIT_ATTEMPT_BUDGTE):
+    for _ in range(options.transpl_attempt_budget):
         compiles = transpiler.transpile()
         if compiles:
             logging.info(
@@ -98,6 +99,10 @@ def initial_transpilation(
             return candidate, factory
         else:
             logging.info("Candidate does not compile. Retrying.")
+            with open("measurements.csv", 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow({"model_name": options.model, "file_name": options.submodule_name})
+    
 
     return None
 
@@ -138,6 +143,18 @@ def main():
     crash_report = open(f"{options.work_dir}/crash_report.txt", "w")
     sys.stderr.write = crash_report.write
 
+    # file to record first-time compile rate, compile rate, and testcase pass rate
+    if not os.path.exists('measurements.csv'):
+        with open('measurements.csv', 'w') as csvfile:
+            fieldnames = ['model_name', 'file_name', 'initial_translation', 'initial_translation_attempts', "initital_translation_errors", "clippy_style", "clippy_complexity", "clippy_correctness", "clippy_performance", "compiles", "compiles_attempts", "final_translation_errors"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+        
+    with open('measurements.csv', 'a') as csvfile:
+        fieldnames = ["model_name", "file_name"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow({"model_name": options.model, "file_name": options.submodule_name})
+
     logging.basicConfig(
         filename="%s/transpilation.log" % options.work_dir,
         level=logging.INFO,
@@ -160,18 +177,36 @@ def main():
     restart_budget = options.restart_budget
     fix_budget = options.fix_budget
 
-    transpiler = Transpiler(
-        "base",
-        comp_fixer,
-        eq_fixer,
-        options.language,
-        options.benchmark_name,
-        options.submodule_name,
-        query_engine,
-        options.transpl_attempt_budget,
-        options.work_dir,
-        model_params={"temperature": options.initial_temperature},
-    )
+
+    if options.c2rust == True:
+        print("DEBUG: C2Rust enabled, attempting to c2rust transpile")
+        prepare_c2rust(options.language, options.benchmark_name, options.submodule_name)
+
+        transpiler = Transpiler(
+            "c2rust",
+            comp_fixer,
+            eq_fixer,
+            "rs",
+            options.benchmark_name,
+            options.submodule_name,
+            query_engine,
+            options.transpl_attempt_budget,
+            options.work_dir,
+            model_params={"temperature": options.initial_temperature},
+        )
+    else:
+        transpiler = Transpiler(
+            "base",
+            comp_fixer,
+            eq_fixer,
+            options.language,
+            options.benchmark_name,
+            options.submodule_name,
+            query_engine,
+            options.transpl_attempt_budget,
+            options.work_dir,
+            model_params={"temperature": options.initial_temperature},
+        )
 
 
 

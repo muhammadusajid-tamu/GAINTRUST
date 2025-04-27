@@ -3,6 +3,7 @@ import logging
 import anthropic
 from llms import QueryEngine, Prompt
 from utils import *
+import csv
 
 
 class Transpiler:
@@ -35,7 +36,7 @@ class Transpiler:
         self.work_dir = work_dir
 
     def transpile(self):
-        if self.prompt == "base":
+        if self.prompt == "base" or self.prompt == "c2rust":
             return self.transpile_base()
         elif self.prompt == "mutate":
             return self.transpile_mutate()
@@ -275,14 +276,20 @@ class Transpiler:
 
         compiles = False
         logging.info(f"Now transpiling {self.fname}.")
-        with open(f"{self.benchmark_path}/{self.fname}.{self.src_lang}", "r") as f:
-            code = f.read()
 
-       
+        try:
+            file_path = f"{self.benchmark_path}/{self.fname}.{self.src_lang}"
+            with open(file_path, "r") as f:
+                code = f.read()
+        except Exception as e:
+            print(f"Exception occurred while reading file: {e}")
+            raise 
+
         src_dir = f"{self.work_dir}/wspace/"
         res_dir = f"{self.work_dir}/results/"
         print("DEBUG: Writing prompt")
 
+            
         prompt = Prompt(
             context=(
                 f"You are given a {self.src_lang.capitalize()} code contained in <code> tags."
@@ -305,14 +312,42 @@ class Transpiler:
             extra_information=self.hint,
         )
 
+        if self.prompt == "c2rust":
+            prompt = Prompt(
+                context=(
+                    f"You are given unsafe Rust code contained in <code> tags."
+                    + " We need to translate this unsafe Rust to safe Rust.\n\n"
+                    + tag(code, "code")
+                ),
+                instruction=f"Give me safe Rust refactoring of the above code.",
+                constraints=[
+                    "Give me only the refactored code, don't add explanations comments.",
+                    "Use the same function and argument names, and use equivalent safe types.",
+                    "Make sure it includes all imports, uses safe rust, and compiles.",
+                    "Don't use raw pointers.",
+                    "Use box pointer whenever possible. Box pointers are preferable to other alternatives.",
+                    "Try not to use Traits if possible. I would not like to have Traits in resulting Rust code.",
+                    "Try not to use Generics if possible.",
+                    "Do not add any explanations or example comments.",
+                    "Do not give me a main function",
+                    "Put the translated code in a markdown rust block."
+                ],
+                extra_information=self.hint,
+            )
         #print("DEBUG: Num attempts: " + self.transpl_attempt_budget)
+        with open(f"{self.work_dir}/initial_translation.txt", "w") as f:
+            f.write(f"{self.query_engine.stringify_prompt(prompt)}\n\n")
 
         min_num_errs = 2**32
+        initial_translation_attempts = 0
         for attempt in range(1, self.transpl_attempt_budget + 1):
+            initial_translation_attempts += 1
             cand_answer_processed = self.query_engine.generate_code(
                 prompt, model_params=self.model_params
             )
-            print("DEBUG: Prompted model")
+            # print("DEBUG: Prompted model")
+            with open(f"{self.work_dir}/initial_translation.txt", "a") as f:
+                f.write(f"==========(ATTEMPT {attempt})==========\n\n{cand_answer_processed}\n\n")
 
             comp_out = compile_and_record_query(cand_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
             print("DEBUG: Compiled and recorded")
@@ -328,6 +363,24 @@ class Transpiler:
             if not num_errs:
                 break
 
+        if min_num_errs == 0:
+            initial_translation = True
+        else:
+            initial_translation = False
+
+        with open("measurements.csv", 'r', newline='') as csvfile:
+            reader = list(csv.reader(csvfile))
+
+            if len(reader) > 1:
+                last_row = reader[-1]
+                last_row.append(f'{initial_translation}')  # Updating 'initial_translation'
+                last_row.append(f'{initial_translation_attempts}')  # Updating 'initial_translation_attempts'
+                last_row.append(f"{min_num_errs}") # Updating 'initial_translation_errors'
+          
+                with open("measurements.csv", 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows(reader[:-1])
+                    writer.writerow(last_row)
         # below is needed to write the best program to file
         # answer_processed, comp_out = postprocess(best_answer_processed, src_dir, prompt)
         comp_out = compile_and_record_query(best_answer_processed, src_dir, self.query_engine.stringify_prompt(prompt))
@@ -370,8 +423,9 @@ class Transpiler:
             rust_code, fnl_comp_out, num_llm_call = self.comp_fixer.fix(
                 answer_processed, init_comp_out, src_dir
             )
+            fnl_num_err = fnl_comp_out
 
-            tot_num_llm_call_for_fix += num_llm_call
+            # tot_num_llm_call_for_fix += num_llm_call
             (
                 _,
                 init_err_c_num_dict,
@@ -379,38 +433,60 @@ class Transpiler:
                 _,
                 init_num_err,
             ) = init_comp_out
-            _, fnl_err_c_num_dict, fnl_err_phase_num_dict, _, fnl_num_err = fnl_comp_out
-
+            # _, fnl_err_c_num_dict, fnl_err_phase_num_dict, _, fnl_num_err = fnl_comp_out
             logging.info(
-                f"\t\tNum errors decreased from {init_num_err} to {fnl_num_err}. Fix path was {self.comp_fixer.fix_path}."
+                f"\tNumber of errors decreased from {init_num_err} to {fnl_num_err} via LLM."
             )
+
+            with open("measurements.csv", 'r', newline='') as csvfile:
+                reader = list(csv.reader(csvfile))
+
+            cl_style, cl_complex, cl_correct, cl_perf = clippy_linter_stats(rust_code, src_dir)
+
+            print("DEBUG: Linting completed")
+            if len(reader) > 1:
+                last_row = reader[-1]
+                last_row.append(f"{cl_style}")  #Updating clippy style, complexity, correctness, and performance stats
+                last_row.append(f"{cl_complex}")
+                last_row.append(f"{cl_correct}")
+                last_row.append(f"{cl_perf}")
+
+                last_row.append(f'{fnl_num_err == 0}')  # Updating 'compiles'
+                last_row.append(f'{num_llm_call}')  # Updating 'compiles_attempts'
+                last_row.append(f"{fnl_num_err}") # Updating 'final_translation_errors'
+
+                with open("measurements.csv", 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows(reader[:-1])
+                    writer.writerow(last_row)
+
             if not fnl_num_err:
                 os.makedirs(f"{res_dir}/", exist_ok=True)
                 self.write_src_code_to_res_dir(res_dir, code)
                 with open(f"{res_dir}/{self.fname}.rs", "w") as fw:
                     fw.write(rust_code)
 
-                num_complete_fixed_transpl += 1
+                # num_complete_fixed_transpl += 1
                 compiles = True
 
-            cum_init_err_c_num_dict = {
-                k: cum_init_err_c_num_dict.get(k, 0) + init_err_c_num_dict.get(k, 0)
-                for k in set(cum_init_err_c_num_dict) | set(init_err_c_num_dict)
-            }
-            cum_fnl_err_c_num_dict = {
-                k: cum_fnl_err_c_num_dict.get(k, 0) + fnl_err_c_num_dict.get(k, 0)
-                for k in set(cum_fnl_err_c_num_dict) | set(fnl_err_c_num_dict)
-            }
-            cum_init_err_phase_num_dict = {
-                k: cum_init_err_phase_num_dict.get(k, 0)
-                + init_err_phase_num_dict.get(k, 0)
-                for k in set(cum_init_err_phase_num_dict) | set(init_err_phase_num_dict)
-            }
-            cum_fnl_err_phase_num_dict = {
-                k: cum_fnl_err_phase_num_dict.get(k, 0)
-                + fnl_err_phase_num_dict.get(k, 0)
-                for k in set(cum_fnl_err_phase_num_dict) | set(fnl_err_phase_num_dict)
-            }
+            # cum_init_err_c_num_dict = {
+            #     k: cum_init_err_c_num_dict.get(k, 0) + init_err_c_num_dict.get(k, 0)
+            #     for k in set(cum_init_err_c_num_dict) | set(init_err_c_num_dict)
+            # }
+            # cum_fnl_err_c_num_dict = {
+            #     k: cum_fnl_err_c_num_dict.get(k, 0) + fnl_err_c_num_dict.get(k, 0)
+            #     for k in set(cum_fnl_err_c_num_dict) | set(fnl_err_c_num_dict)
+            # }
+            # cum_init_err_phase_num_dict = {
+            #     k: cum_init_err_phase_num_dict.get(k, 0)
+            #     + init_err_phase_num_dict.get(k, 0)
+            #     for k in set(cum_init_err_phase_num_dict) | set(init_err_phase_num_dict)
+            # }
+            # cum_fnl_err_phase_num_dict = {
+            #     k: cum_fnl_err_phase_num_dict.get(k, 0)
+            #     + fnl_err_phase_num_dict.get(k, 0)
+            #     for k in set(cum_fnl_err_phase_num_dict) | set(fnl_err_phase_num_dict)
+            # }
         elif init_comp_out[-1]:
             logging.info("\tTranspilation FAILED. No fixer is set.")
         else:

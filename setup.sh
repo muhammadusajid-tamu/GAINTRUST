@@ -6,8 +6,9 @@ sudo apt update && sudo apt install python3-venv -y
 # Install Rust and required dependencies
 sudo apt install rustup -y
 sudo apt install cargo -y
+sudo apt install build-essential llvm clang cproto libclang-dev cmake libssl-dev pkg-config python3 git -y
 rustup default nightly
-
+cargo install c2rust
 # Create and activate virtual environment
 python3 -m venv myenv
 source myenv/bin/activate
