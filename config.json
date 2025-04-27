@@ -1,13 +1,14 @@
 {
     "benchmark_name": "libopenaptx/aptx_bin_search",
     "submodule_name": "aptx_bin_search",
-    "tag": "test",
+    "tag": "base_translation2",
     "n_prompt_examples": 4,
-    "timeout": 3,
-    "restart_budget": 3,
-    "fix_budget": 5,
+    "timeout": 1,
+    "restart_budget": 1,
+    "fix_budget": 1,
     "fallback_opt": "fix",
     "language": "c",
+    "c2rust": false,
 
     "model": "local-qwen"
 }

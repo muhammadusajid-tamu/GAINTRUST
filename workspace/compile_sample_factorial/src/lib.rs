@@ -1,0 +1,14 @@
+use std::io;
+
+fn factorial(n: isize) -> isize {
+    if n <= 1 {
+        1
+    } else {
+        n * factorial(n - 2)
+    }
+}
+
+fn main() {
+    let num = 5;
+    println!("Factorial of {} is {}", num, factorial(num));
+}

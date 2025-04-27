@@ -44,3 +44,25 @@ Follow these steps to set up and run the project:
     ```sh
     python driver.py
     ```
+
+## C to Rust Transpilation with LangChain & Supervisor
+   **CLI** (`supervisor.py`)
+   Place your C files in `workspace/wspace/`, then from the project root:
+   ```powershell
+   # Transpile all .c files in workspace/wspace:
+   python supervisor.py --work-dir workspace
+
+   # Transpile a single file with feedback:
+   python supervisor.py --file workspace/wspace/sample_binsearch.c \
+     --work-dir workspace --method supervisor_feedback
+   ```
+   Flags:
+   - `--work-dir`: Working directory (default: `workspace`)
+   - `--file`: Path to a single C file (optional)
+   - `--method`: `supervisor` or `supervisor_feedback` (default: `supervisor`)
+   - `--model`: Supervisor model name (default: `local-qwen`)
+
+Outputs are written to:
+```
+workspace/results/<task_type>/<file_name>.rs
+```

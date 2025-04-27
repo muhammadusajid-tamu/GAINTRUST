@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from typing import List
 
 @dataclass(frozen=True)
 class Options:
@@ -15,6 +16,8 @@ class Options:
     comp_fix: str = "base"  # choices = ["base", "adv", "beam", "msft"]
     comp_fix_attempt_budget: int = 3
     sem_fix: str = "base"  # choices=["base", "llm-fl", "pa-fl", "llm-explain"]
+    
+    c2rust: bool = False
     initial_temperature: float = 0.2
     hinted: bool = False
     conversation: bool = False
