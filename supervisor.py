@@ -24,7 +24,7 @@ from langchain_core.runnables import Runnable, RunnablePassthrough
 # Import GAINTRUST components
 from llms import QueryEngine, Prompt, USER, ASSISTANT, LocalQwen, CodeLlama
 from llms import QueryEngineFactory
-from utils import tag, cd, compile_and_record_query, parse_error_timepass
+from utils import tag, cd, compile_and_record_query, parse_error_timepass, rudra_suggest
 from langchain_local_integration import LocalModelLangChainAdapter, CToRustTranspilerChain, CToRustTranspilerWithFeedback
 
 # Task types for C to Rust transpilation
@@ -539,7 +539,8 @@ class SupervisorWithFeedback(CToRustSupervisor):
         worker_models: Dict[str, Union[str, BaseLanguageModel]] = None,
         global_constraints: List[str] = None,
         work_dir: str = "./workspace",
-        feedback_loops: int = 2
+        feedback_loops: int = 2,
+        use_rudra: bool = False
     ):
         """
         Initialize the supervisor with feedback.
@@ -550,9 +551,11 @@ class SupervisorWithFeedback(CToRustSupervisor):
             global_constraints: Optional list of constraints to apply
             work_dir: Working directory for transpilation
             feedback_loops: Number of feedback loops to perform
+            use_rudra: Use rudra-like error explanations in feedback
         """
         super().__init__(supervisor_model, worker_models, global_constraints, work_dir)
         self.feedback_loops = feedback_loops
+        self.use_rudra = use_rudra
     
     def transpile_with_feedback(self, c_code: str, file_name: str = "transpiled") -> Dict[str, Any]:
         """
@@ -568,6 +571,13 @@ class SupervisorWithFeedback(CToRustSupervisor):
         # Initial transpilation
         result = self.transpile(c_code, file_name)
         
+        # Prepare results directory for this file’s feedback outputs
+        res_base_dir = os.path.join(self.work_dir, "results", file_name)
+        os.makedirs(res_base_dir, exist_ok=True)
+        
+        # Initialize list to track feedback output paths
+        result["feedback_paths"] = []
+        
         # If successful or no Rust code was generated, return immediately
         if result.get("success", False) or "rust_code" not in result:
             return result
@@ -576,46 +586,60 @@ class SupervisorWithFeedback(CToRustSupervisor):
         for i in range(self.feedback_loops):
             logging.info(f"Starting supervisor feedback loop {i+1}/{self.feedback_loops}")
             
-            # Get compilation errors
-            src_dir = f"{self.work_dir}/wspace"
             rust_code = result["rust_code"]
             
+            # Prepare compile directory for this feedback iteration under results
+            compile_dir = os.path.join(res_base_dir, f"feedback_{i+1}")
+            os.makedirs(compile_dir, exist_ok=True)
+            os.makedirs(f"{compile_dir}/src", exist_ok=True)
+            with open(f"{compile_dir}/src/lib.rs", "w", encoding="utf-8") as fw:
+                fw.write(rust_code)
+            
             # Compile and get errors
-            comp_out = compile_and_record_query(rust_code, src_dir, "Feedback compilation", log_id=file_name)
-            error_output = comp_out.stderr
+            comp_out = compile_and_record_query(
+                rust_code,
+                compile_dir,
+                "Feedback compilation",
+                log_id=f"{file_name}_feedback_{i+1}"
+            )
+            
+            if self.use_rudra:
+                error_output = rudra_suggest(compile_dir, f"{file_name}_feedback_{i+1}")
+            else:
+                error_output = comp_out.stderr.decode("utf-8", errors="ignore") if hasattr(comp_out, 'stderr') else ""
             
             # Create feedback prompt
             feedback_prompt = ChatPromptTemplate.from_messages([
                 ("system", "You are an expert Rust programmer. Your task is to fix compilation errors in Rust code that was translated from C."),
-                ("human", f"""
-                I have the following C code:
-                
-                ```c
-                {{ c_code }}
-                ```
-                
-                It was translated to Rust, but there are compilation errors:
-                
-                ```rust
-                {{ rust_code }}
-                ```
-                
-                Here are the compilation errors:
-                
-                ```
-                {{ error_output }}
-                ```
-                
-                Please fix the Rust code to address all compilation errors. The fixed code should:
-                - Compile without errors
-                - Maintain the same functionality as the original C code
-                - Use safe Rust practices
-                - Avoid raw pointers
-                - Use Box pointers when appropriate
-                - Avoid unnecessary Traits and Generics
-                
-                Return only the fixed Rust code in a markdown rust block.
-                """)
+                ("human", """
+I have the following C code:
+
+```c
+{c_code}
+```
+
+It was translated to Rust, but there are compilation errors:
+
+```rust
+{rust_code}
+```
+
+Here are the compilation errors:
+
+```
+{error_output}
+```
+
+Please fix the Rust code to address all compilation errors. The fixed code should:
+- Compile without errors
+- Maintain the same functionality as the original C code
+- Use safe Rust practices
+- Avoid raw pointers
+- Use Box pointers when appropriate
+- Avoid unnecessary Traits and Generics
+
+Return only the fixed Rust code in a markdown rust block.
+""")
             ])
             
             # Create the feedback chain
@@ -636,11 +660,11 @@ class SupervisorWithFeedback(CToRustSupervisor):
                 elif "```" in improved_response:
                     improved_rust_code = improved_response.split("```")[1].split("```")[0].strip()
                 
-                # Compile and check for errors
+                # Compile and check for errors using the same compile_dir
                 comp_out = compile_and_record_query(
-                    improved_rust_code, 
-                    src_dir, 
-                    feedback_prompt.format_messages({})[0].content + feedback_prompt.format_messages({})[1].content,
+                    improved_rust_code,
+                    compile_dir,
+                    "",
                     log_id=f"{file_name}_feedback_{i+1}"
                 )
                 
@@ -655,16 +679,21 @@ class SupervisorWithFeedback(CToRustSupervisor):
                 result["num_errors"] = num_errs
                 result["success"] = num_errs == 0
                 
-                # Save the improved Rust code
-                res_dir = f"{self.work_dir}/results"
-                with open(f"{res_dir}/{file_name}_feedback_{i+1}.rs", "w") as fw:
+                # Save the improved Rust code for this iteration
+                feedback_path = os.path.join(res_base_dir, f"{file_name}_feedback_{i+1}.rs")
+                with open(feedback_path, "w", encoding="utf-8") as fw:
                     fw.write(improved_rust_code)
+                
+                # Record this feedback file path
+                result["feedback_paths"].append(feedback_path)
                 
                 # If no errors, we're done
                 if num_errs == 0:
                     # Save the final version
-                    with open(f"{res_dir}/{file_name}.rs", "w") as fw:
+                    final_path = os.path.join(res_base_dir, f"{file_name}.rs")
+                    with open(final_path, "w", encoding="utf-8") as fw:
                         fw.write(improved_rust_code)
+                    result["output_path"] = final_path
                     break
                 
             except Exception as e:
@@ -779,6 +808,8 @@ if __name__ == "__main__":
     parser.add_argument("--method", choices=["supervisor", "supervisor_feedback"], default="supervisor", help="Transpilation method")
     parser.add_argument("--work-dir", "-w", default="./workspace", help="Working directory for transpilation")
     parser.add_argument("--model", default="local-qwen", help="Supervisor model name")
+    parser.add_argument("--loops", "-l", type=int, default=2, help="Number of feedback loops to perform")
+    parser.add_argument("--use-rudra", action="store_true", help="Use rudra-like error explanations in feedback")
     args = parser.parse_args()
 
     # Collect C files
@@ -794,8 +825,10 @@ if __name__ == "__main__":
     # Initialize supervisor
     if args.method == "supervisor_feedback":
         sup = SupervisorWithFeedback(
-            supervisor_model=args.model, 
-            work_dir=args.work_dir
+            supervisor_model=args.model,
+            work_dir=args.work_dir,
+            feedback_loops=args.loops,
+            use_rudra=args.use_rudra
         )
     else:
         sup = CToRustSupervisor(

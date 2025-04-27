@@ -220,14 +220,14 @@ class CToRustTranspilerChain:
         Returns:
             Extracted code or the original text if no code blocks found
         """
+        # Detect instruction-only bullet lists and return empty
+        lines = text.strip().splitlines()
+        if lines and all(l.strip().startswith(('-', '*')) for l in lines):
+            return ''
+        
         # Look for ```rust ... ``` blocks
         import re
         
-        # First, check if the text is already clean Rust code (no markdown)
-        # If it contains typical Rust keywords and no markdown formatting
-        if re.search(r'\b(fn|pub|use|struct|impl|let|mut)\b', text) and not re.search(r'```|<code>|<\/code>', text):
-            return text.strip()
-            
         # Look for ```rust ... ``` blocks
         rust_code_blocks = re.findall(r'```rust\s*(.*?)\s*```', text, re.DOTALL)
         
@@ -326,6 +326,11 @@ class CToRustTranspilerChain:
                 
                 # Extract code from markdown if present
                 rust_code = self._extract_code_from_markdown(rust_code)
+                
+                # Skip write and compile if no code extracted (likely instruction-only)
+                if not rust_code.strip():
+                    logging.warning(f"Transpilation attempt {attempt}: no Rust code extracted; skipping write and compile")
+                    continue
                 
                 # Save to file in results directory
                 os.makedirs(res_dir, exist_ok=True)

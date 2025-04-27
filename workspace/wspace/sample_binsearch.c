@@ -6,9 +6,6 @@
 
 
 
-
-
-
 static inline int32_t aptx_bin_search(int32_t value, int32_t factor,
                                       const int32_t *intervals, int nb_intervals)
 {
